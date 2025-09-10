@@ -22,29 +22,22 @@ jobs:
 
       - name: Install deps
         run: |
-          python -m pip install -U pip
+          set -eux
+          python -m pip install -U pip wheel
+          # Install test dependencies (always)
           if [ -f requirements-dev.txt ]; then
             python -m pip install -r requirements-dev.txt
           else
             python -m pip install pytest pyyaml openpyxl openapi-spec-validator
           fi
-          # Install your package if packaging files exist; otherwise we'll set PYTHONPATH later
+          # Install the project (editable if packaging files exist)
           if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
             python -m pip install -e .
           fi
-
-      - name: Sanity print (env + files)
-        run: |
-          python -V
-          pip --version
-          pip freeze | sed -n '1,120p'
-          echo "Workspace: $GITHUB_WORKSPACE"
-          ls -la
-          ls -la tests || true
-          ls -la tests/data || true
+          # Sanity check: ensure pytest is present
+          python -m pip show pytest
 
       - name: Run tests
         env:
-          # Fallback so imports like `from api_description_tool import ...` work without packaging install
-          PYTHONPATH: ${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }}   # fallback if not installed as a package
         run: python -m pytest -q
