@@ -1,0 +1,4765 @@
+openapi: 3.0.0
+info:
+  title: Holiday Package Search
+  description: API for processing search service parameters and handling different
+    request scenarios.
+  termsOfService: http://swagger.io/terms/
+  contact:
+    name: Bravo Team
+    url: http://swagger.io
+    email: SearchServices@email.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://swagger.io
+    description: Production server
+paths:
+  /holidays/packages/search:
+    get:
+      summary: Holiday Search with various parameters
+      description: This endpoint processes search parameters to fetch results based
+        on different criteria.
+      operationId: getHolidaySearch
+      parameters:
+        - name: X-Trace-Id
+          in: header
+          description: Trace ID used for tracking requests
+          schema:
+            type: string
+            nullable: true
+          example: abc123-trace-id
+        - name: ttlValue
+          in: query
+          schema:
+            type: integer
+            format: int64
+            nullable: true
+        - name: atcacheV2
+          in: query
+          description: "Denotes whether to fetch from New or Old Atcom Cache instances.\
+          \ True - for New Cache Separation, False - Old instances"
+          schema:
+            type: boolean
+            nullable: true
+            default: false
+          example: true
+        - name: accessibilityInfo
+          in: query
+          description: Used to enable Accessibility information filter
+          schema:
+            type: boolean
+            nullable: true
+          example: true
+        - name: brand
+          in: query
+          description: Comma-separated list of brands
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: channel
+          in: query
+          description: The channel through which the request is made
+          required: true
+          schema:
+            type: string
+          example: web
+        - name: language
+          in: query
+          description: Language relevant to the website
+          required: true
+          schema:
+            type: string
+          example: en
+        - name: pageName
+          in: query
+          description: "Name of the page (search, hotelResults, hotelDetails, roomOptions,\
+          \ itinerary, tmcBookAccommodation, bookAccommodation, flightOptions)"
+          required: true
+          schema:
+            type: string
+          example: search
+        - name: resultsPerPage
+          in: query
+          description: Records per page for search results
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 10
+        - name: siteID
+          in: query
+          description: Site identifier where the search is being performed
+          required: true
+          schema:
+            type: string
+            enum:
+              - TH
+              - FJ
+              - FC
+              - RT
+              - RT_FJ
+              - SE
+              - DK
+              - "NO"
+              - FI
+              - RT_SE
+              - RT_NO
+          example: TH
+        - name: centreSelectedAccom
+          in: query
+          description: Selected accommodation identifiers (split by comma)
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: searchType
+          in: query
+          description: "Type of search being performed (initialSearch, baynote, tmcInitialSearch,\
+          \ tmcFilterSearch, filterSearch, ancSearch, unitSearch, datesOnly, durationsOnly,\
+          \ offersOnly, datesDurationOnly,datesOffersOnly, durationsOffersOnly, unitFilterSearch,\
+          \ singleAccom, hotelOptionsSearch, altRooms)"
+          required: true
+          schema:
+            type: string
+          example: initialSearch
+        - name: destinations
+          in: query
+          description: Comma separated Array of destination/accommodation/productRange
+            codes and type of location/accommodation/productRange with ':' as separator
+            to be searched for
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - ESP:COUNTRY
+            - 945679:COUNTRY
+            - BLU:PRODUCTRANGE
+        - name: filteredDestinations
+          in: query
+          description: "Filtered list of destination codes and types (e.g., \"code:type\"\
+          ) for MultiCentre flow"
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - NYC:city
+            - Beach:productRange
+        - name: firstRecNo
+          in: query
+          description: First record number in the paginated search results
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 1
+        - name: offsetNumber
+          in: query
+          description: This parameter denotes the first record number to display in
+            search results page in case of both initial and pagination
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 1
+        - name: holidayType
+          in: query
+          description: "Category of the holiday (e.g., \"Luxury\", \"Family\")"
+          schema:
+            type: string
+            nullable: true
+          example: Luxury
+        - name: accommodationCode
+          in: query
+          description: Code of the accommodation of the selected package in book flow
+            page.
+          schema:
+            type: string
+            nullable: true
+        - name: moduleType
+          in: query
+          description: Type of module i.e. SEARCH/DEALS/BROWSE
+          required: true
+          schema:
+            type: string
+          example: SEARCH
+        - name: sortBy
+          in: query
+          description: "Sorting parameter for results (e.g., \"price\", \"rating\")"
+          schema:
+            type: string
+            nullable: true
+          example: price
+        - name: accommodationType
+          in: query
+          description: "Comma-separated list of accommodation types (e.g., \"Hotel\"\
+          , \"Apartment\")"
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - Hotel
+        - name: Villa
+          in: query
+          schema:
+            type: boolean
+            nullable: true
+        - name: initEndDate
+          in: query
+          description: Initial end date for search results (yyyy-MM-dd)
+          schema:
+            type: string
+            nullable: true
+        - name: initStartDate
+          in: query
+          description: Initial start date for search results (yyyy-MM-dd)
+          schema:
+            type: string
+            nullable: true
+        - name: tRating
+          in: query
+          description: Rating selected
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 5
+        - name: tripAdvisorRating
+          in: query
+          description: TripAdvisor rating for accommodations selected
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 5
+        - name: CRUISEDESTINATIONS
+          in: query
+          description: Comma separated list of selected Cruise destination filter values
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - TUR
+        - name: STAYLOCATIONS
+          in: query
+          description: Comma separated list of selected Cruise stay location filter
+            values
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - "000122"
+            - "000123"
+        - name: shipNames
+          in: query
+          description: Comma-separated list of ship names selected in cruise flow
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: shipCode
+          in: query
+          description: Comma-separated list of ship codes
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: SC
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: productRange
+          in: query
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: sessionId
+          in: query
+          description: SessionID passed from consumers
+          schema:
+            type: string
+            nullable: true
+        - name: accomFeatures
+          in: query
+          description: List of accommodation features/facilities selected in the filter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - ST23
+            - STP8
+            - ST37
+        - name: holidayOperator
+          in: query
+          description: In case of brand operator filter to send the selected brand list
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: bestFor
+          in: query
+          description: List of bestfors selected in the filter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - ACCGRF
+            - P00053
+        - name: resultType
+          in: query
+          description: Type of result for eg BEACH/TOURS/SKI/MMB etc
+          required: true
+          schema:
+            type: string
+          example: BEACH
+        - name: customerRating
+          in: query
+          description: Customer rating filter value
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 4
+        - name: requestType
+          in: query
+          description: Type of request used in tours flow
+          schema:
+            type: string
+            nullable: true
+          example: pricecalendar
+        - name: flexible
+          in: query
+          description: "If true, allows the search to consider a flexible date range."
+          schema:
+            type: boolean
+            nullable: true
+            default: false
+          example: true
+        - name: flexibleDays
+          in: query
+          description: +/- number of days flexibility from departure date. Mandatory
+            if flexible parameter is true.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 2
+        - name: flexibleMonths
+          in: query
+          description: +/- number of months flexibility from departure date
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 1
+        - name: distanceToBeach
+          in: query
+          description: DistanceToBeach filter value
+          schema:
+            type: string
+            nullable: true
+        - name: paginate
+          in: query
+          description: Flag to indicate paginate request
+          schema:
+            type: boolean
+            nullable: true
+          example: true
+        - name: selectedCentre
+          in: query
+          description: Selected centre number in case of TMC search
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+        - name: cacheEnable
+          in: query
+          description: Denotes whether to fetch from Elastic Cache or not
+          required: true
+          schema:
+            type: boolean
+          example: true
+        - name: ruleVarient
+          in: query
+          description: RuleVarient - used in building Search rule id for the request
+          schema:
+            type: string
+            nullable: true
+        - name: productType
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: to
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: oneWay
+          in: query
+          schema:
+            type: boolean
+            nullable: true
+        - name: currency
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: combiHashCode
+          in: query
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: boundType
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: productId
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: resortBestFor
+          in: query
+          description: Selected resort BestFor filter value - crystal ski filter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: resFeatures
+          in: query
+          description: Selected resort features filter value - crystal ski filter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: mtnFeatures
+          in: query
+          description: Selected mountain features filter value crystal ski filter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: offers
+          in: query
+          description: Selected offers code from offers filter - crystal ski parameter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: offersEnabled
+          in: query
+          description: Enable offers filter in alternate flights flow. Mandatory in
+            case of Crystal ski.
+          schema:
+            type: boolean
+            nullable: true
+        - name: offersVersion
+          in: query
+          description: Used to indicate offers version for crystal ski sites
+          schema:
+            type: string
+            nullable: true
+        - name: carrier
+          in: query
+          description: "Carrier - list of airline carriers used in crystal ski sites\
+          \ to fetch offers based on the conditions, also for filter request of offers"
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - EY
+            - BA
+        - name: abCookie
+          in: query
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - 1080:A
+        - name: multiRoomPackage
+          in: query
+          description: Room De duplication parameter which denotes if the request is
+            for single room or multiple rooms
+          schema:
+            type: boolean
+            nullable: true
+          example: true
+        - name: rmtp_1
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: dhspf
+          in: query
+          description: Used to enable sorting of dynamic hotels
+          schema:
+            type: boolean
+            nullable: true
+        - name: dateLTE
+          in: query
+          description: Date Less Than or Equal to - used in crystal ski sites to fetch
+            offers based on the conditions and also for filter request of offers
+          schema:
+            type: string
+            nullable: true
+          example: 2024-12-01
+        - name: dateGTE
+          in: query
+          description: "Date Greater Than or Equal to - used in crystal ski sites to\
+          \ fetch offers based on the conditions, also for filter request of offers"
+          schema:
+            type: string
+            nullable: true
+          example: 2024-12-01
+        - name: dateNEq
+          in: query
+          description: "Date Not Equal to - this is list of dates used in crystal ski\
+          \ sites to fetch offers based on the conditions, also for filter request\
+          \ of offers"
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - 2024-12-01
+            - 2024-12-24
+        - name: dateEq
+          in: query
+          description: "Date Equal to - this is list of dates used in crystal ski sites\
+          \ to fetch offers based on the conditions, also for filter request of offers"
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - 2024-12-01
+            - 2024-12-24
+        - name: offerDurations
+          in: query
+          description: "Offer durations - this is list of durations used in crystal\
+          \ ski sites to fetch offers based on the conditions, also for filter request\
+          \ of offers"
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - "7"
+            - "8"
+        - name: daysBefore
+          in: query
+          description: Days before - number of days between current date and accommodation
+            start date used in crystal ski sites to fetch offers based on the conditions
+            and also for filter request of offers.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 20
+        - name: arrivalPts
+          in: query
+          description: "Arrival points - this is list of arrival airports used in crystal\
+          \ ski sites to fetch offers based on the conditions, also for filter request\
+          \ of offers."
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - LGW
+            - LHR
+        - name: flightType
+          in: query
+          description: "Flight type - internal or external flight type used in crystal\
+          \ ski sites to fetch offers based on the conditions, also for filter request\
+          \ of offers"
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - internal
+        - name: names
+          in: query
+          description: Desti to Atcom parameter to control whether the “Name” attribute
+            of the “Unit” & "Accom" will be returned in the response
+          schema:
+            type: string
+            description: Atcore/Inventory parameters start here
+            nullable: true
+        - name: srcInfo
+          in: query
+          description: Desti to Atcom parameter to control whether the “SrcInfo” element
+            will be returned in the response
+          schema:
+            type: string
+            nullable: true
+        - name: adults
+          in: query
+          description: Number of adult passengers
+          required: true
+          schema:
+            type: integer
+            format: int32
+          example: 2
+        - name: childAge
+          in: query
+          description: Comma-separated list of child ages. Mandatory if child > 0
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: integer
+              format: int32
+          example:
+            - 3
+            - 5
+        - name: children
+          in: query
+          description: Number of children including infants
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 2
+        - name: infant
+          in: query
+          description: Number of infants
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 2
+        - name: depPort
+          in: query
+          description: Departure port for cruise requests
+          schema:
+            type: string
+            nullable: true
+        - name: UKPort
+          in: query
+          description: UK departure port for cruise requests
+          schema:
+            type: string
+            nullable: true
+        - name: seats
+          in: query
+          description: "Show Premium/Extra Leg room seat options, where available -\
+          \ inventory request parameter which is indicated by Y/N"
+          schema:
+            type: string
+            nullable: true
+          example: "N"
+        - name: f
+          in: query
+          description: Facet enable/disable parameter - inventory request parameter
+            (Y/N)
+          schema:
+            type: string
+            nullable: true
+          example: "Y"
+        - name: f_no
+          in: query
+          description: Number of facet categories to filter by - inventory request parameter
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 2
+        - name: f_n
+          in: query
+          description: Facet category code to filter by - inventory request parameter
+          schema:
+            type: string
+            nullable: true
+          example: FT000P
+        - name: fa_n
+          in: query
+          description: AND facet code for category to filter by - inventory request
+            parameter
+          schema:
+            type: string
+            nullable: true
+          example: "ST23,STP8"
+        - name: fo_n
+          in: query
+          description: OR facet code for category to filter by - inventory request parameter
+          schema:
+            type: string
+            nullable: true
+          example: "ST23,STP8"
+        - name: dc
+          in: query
+          description: Free kid filter enabler - inventory request parameter (Y/N).
+            Default value is N.
+          schema:
+            type: string
+            nullable: true
+            default: "N"
+          example: "Y"
+        - name: sdate
+          in: query
+          description: Earliest departure date for the search (yyyy-MM-dd)
+          required: true
+          schema:
+            type: string
+          example: 2026-09-12
+        - name: edate
+          in: query
+          description: Latest departure date for the search (yyyy-MM-dd)
+          required: true
+          schema:
+            type: string
+          example: 2026-09-18
+        - name: direct
+          in: query
+          description: Flag to enable direct flights. Default value is N (Y/N)
+          schema:
+            type: string
+            nullable: true
+            default: "N"
+          example: "Y"
+        - name: rooms
+          in: query
+          description: Number of rooms required in each centre
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 1
+        - name: p_tp
+          in: query
+          description: "Type of price for the holiday, either total price(TP) or per\
+          \ person price (PP) - inventory request parameter"
+          schema:
+            type: string
+            nullable: true
+          example: PP
+        - name: stay
+          in: query
+          description: Desired accommodation stay duration
+          required: true
+          schema:
+            type: integer
+            format: int32
+          example: 7
+        - name: resp_type
+          in: query
+          description: "This is used in alternate flights call. RLV, PKG, CAL and DUR\
+          \ are the different options. It's a comma separated array of strings."
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - RLV
+            - PKG
+            - CAL
+        - name: durations
+          in: query
+          description: List of durations to filter the results
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: integer
+              format: int32
+          example:
+            - 7
+            - 6
+            - 8
+            - 9
+            - 10
+            - 11
+        - name: listDurations
+          in: query
+          description: List of durations to filter the results. Same as that of durations.
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: integer
+              format: int32
+          example:
+            - 7
+            - 8
+            - 6
+            - 11
+            - 10
+        - name: from
+          in: query
+          description: List of customer selected departure airports
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - PMI
+            - LPA
+        - name: bb
+          in: query
+          description: Board basis
+          schema:
+            type: string
+            nullable: true
+          example: "FB,HB"
+        - name: major_cabin
+          in: query
+          description: Major cabin flight info - inventory request parameter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - M
+            - W
+        - name: availableAirports
+          in: query
+          description: Comma-separated list of departure airports
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: grp_mth
+          in: query
+          description: "Group method - inventory request parameter. Default value is\
+          \ 0, only valid for s_tp=4."
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 3
+        - name: prom_no
+          in: query
+          description: List of promotions - inventory request parameter
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - "1"
+        - name: packageDate
+          in: query
+          description: Date for the package
+          schema:
+            type: string
+            nullable: true
+        - name: prom
+          in: query
+          description: Promotion - inventory request parameter
+          schema:
+            type: string
+            nullable: true
+          example: TH
+        - name: h_tp
+          in: query
+          description: Holiday type - inventory request parameter. Default value is
+            P
+          schema:
+            type: string
+            nullable: true
+            default: P
+            enum:
+              - P
+              - A
+              - F
+              - C
+              - T
+              - DayTrip
+              - BEACH
+              - CITY
+              - LAKE
+          example: F
+        - name: mkt
+          in: query
+          description: Market value - inventory request parameter
+          schema:
+            type: string
+            nullable: true
+          example: BCTH
+        - name: c_tp
+          in: query
+          description: Cruise offer type - inventory request parameter. Only valid in
+            case of cruise requests.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 3
+        - name: tra_o
+          in: query
+          description: Outbound flight information of selected package
+          schema:
+            type: string
+            nullable: true
+        - name: tra_i
+          in: query
+          description: Inbound flight information of selected package
+          schema:
+            type: string
+            nullable: true
+        - name: tra_no_o
+          in: query
+          description: Outbound flight information of selected package
+          schema:
+            type: string
+            nullable: true
+        - name: tra_no_i
+          in: query
+          description: Inbound flight information of selected package
+          schema:
+            type: string
+            nullable: true
+        - name: slot_o
+          in: query
+          description: Airport timing filter options for outbound flight
+          schema:
+            type: string
+            nullable: true
+        - name: slot_i
+          in: query
+          description: Airport timing filter options for inbound flight
+          schema:
+            type: string
+            nullable: true
+        - name: brws
+          in: query
+          description: Parameter to enable browse mode - inventory request parameter
+            (Y/N). Default value is N.
+          schema:
+            type: string
+            nullable: true
+            default: "N"
+          example: "Y"
+        - name: altb
+          in: query
+          description: Show alternate board information - inventory request parameter
+            (Y/N). Default value is N.
+          schema:
+            type: string
+            nullable: true
+            default: "N"
+          example: "Y"
+        - name: cabinClass
+          in: query
+          description: CabinClass info of the flight required
+          schema:
+            type: string
+            nullable: true
+        - name: cs_dur_acc
+          in: query
+          description: Cruise accommodation duration for cruise inventory requests
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 7
+        - name: cs_dur_cru
+          in: query
+          description: Cruise stay duration for cruise inventory requests
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 7
+        - name: tpf
+          in: query
+          description: Parameter to enable third party flights (Y/N/O). Default is Y.
+          schema:
+            type: string
+            nullable: true
+            default: "Y"
+          example: "N"
+        - name: tpa
+          in: query
+          description: Parameter to enable third party accommodations (Y/N/O). Default
+            is Y.
+          schema:
+            type: string
+            nullable: true
+            default: "Y"
+          example: "N"
+        - name: rmtp_n
+          in: query
+          description: Room De duplication parameter which denotes the room type in
+            case of fixed centres of cruise and stay or multi centres
+          schema:
+            type: string
+            nullable: true
+          example: TW02
+        - name: extHot
+          in: query
+          description: Room De duplication parameter which denotes if accommodation
+            selected is external or not
+          schema:
+            type: string
+            nullable: true
+          example: "Y"
+        - name: supplier
+          in: query
+          description: Room De duplication parameter for the external supplier info
+          schema:
+            type: string
+            nullable: true
+          example: DAS
+        - name: pkgDate
+          in: query
+          description: Selected package start date
+          schema:
+            type: string
+            nullable: true
+          example: 2024-09-08
+        - name: pkgAirport
+          in: query
+          description: Selected package departure airport
+          schema:
+            type: string
+            nullable: true
+          example: LGW
+        - name: pkgInfo
+          in: query
+          description: Selected package id
+          schema:
+            type: string
+            nullable: true
+        - name: cs_order
+          in: query
+          description: "Cruise and stay type order - cruise inventory request parameter.\
+          \ 1 = Cruise first, 2 = Stay first, 3 = Cruise & cruise"
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 3
+        - name: abta
+          in: query
+          description: ABTA information for inventory request
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+          example:
+            - T|A1234
+            - F|R432
+        - name: accom_no
+          in: query
+          description: Number of accommodation for inventory request
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 2
+        - name: rm_n
+          in: query
+          description: Room number
+          schema:
+            type: string
+            nullable: true
+          example: "1,2"
+        - name: rmbb_n
+          in: query
+          description: Board type. Mandatory for alternate rooms requests with fixed
+            rooms/centre. Optional otherwise.
+          schema:
+            type: string
+            nullable: true
+          example: BB
+        - name: chg_pax_ad
+          in: query
+          description: Change passenger adult count.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: -1
+        - name: chg_pax_ch
+          in: query
+          description: Change passenger child count.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: -1
+        - name: chg_pax_in
+          in: query
+          description: Change passenger infant count.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: -1
+        - name: chg_ch_age
+          in: query
+          description: Change passenger child age - mandatory if pax_ch+chg_pax_ch >
+            0
+          style: form
+          explode: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: integer
+              format: int32
+          example:
+            - 12
+            - 6
+        - name: max_prc
+          in: query
+          description: Max price of packages displayed on search results.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 2000
+        - name: seat_tp
+          in: query
+          description: Type of seat in amend and cancel passenger change flow.
+          schema:
+            type: string
+            nullable: true
+          example: P
+        - name: cs_centre_f
+          in: query
+          description: Fixed centre.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 1
+        - name: mc_centre
+          in: query
+          description: Variant centre selection.
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+          example: 1
+        - name: mc
+          in: query
+          description: Include multicentre results. Default value is Y.
+          schema:
+            type: string
+            nullable: true
+            default: "Y"
+          example: "N"
+        - name: list
+          in: query
+          description: Show Anite Lists. Default value is Y.
+          schema:
+            type: string
+            nullable: true
+            default: "Y"
+          example: "N"
+        - name: carrier(non-ski)
+          in: query
+          description: Selected carrier filter value .
+          schema:
+            type: string
+            nullable: true
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HolidaySearchResponse"
+        "400":
+          description: Invalid request parameters
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+components:
+  schemas:
+    Accom:
+      required:
+        - code
+        - date
+        - id
+        - price
+        - pricePP
+        - unit
+      type: object
+      properties:
+        date:
+          required:
+            - "true"
+          type: string
+          description: The date associated with the accommodation.
+          nullable: true
+        code:
+          required:
+            - "true"
+          type: string
+          description: The unique code for the accommodation.
+          nullable: true
+        prom:
+          type: string
+          description: The promotion code associated with the accommodation.
+          nullable: true
+        unit:
+          required:
+            - "true"
+          type: array
+          description: List of unit objects representing the accommodation units.
+          nullable: true
+          items:
+            $ref: "#/components/schemas/AccomUnit"
+        id:
+          required:
+            - "true"
+          type: string
+          description: The unique identifier for the accommodation.
+          nullable: true
+        atcomId:
+          type: string
+          description: The ID used in the atcom system for the accommodation.
+          nullable: true
+        type:
+          type: string
+          description: The type of accommodation.
+          nullable: true
+        brand:
+          type: string
+          description: The brand associated with the accommodation.
+          nullable: true
+        commPri:
+          type: string
+          description: The commercial priority of the accommodation.
+          nullable: true
+        stay:
+          type: string
+          description: The stay duration or information.
+          nullable: true
+        checkInDate:
+          type: string
+          description: The check-in date for the accommodation.
+          nullable: true
+        checkOutDate:
+          type: string
+          description: The check-out date for the accommodation.
+          nullable: true
+        pricePP:
+          required:
+            - "true"
+          type: string
+          description: The price per person for the accommodation.
+          nullable: true
+        price:
+          required:
+            - "true"
+          type: string
+          description: The total price for the accommodation.
+          nullable: true
+        disc:
+          type: string
+          description: The discount applied to the accommodation.
+          nullable: true
+        discPP:
+          type: string
+          description: The discount per person applied to the accommodation.
+          nullable: true
+        stayComponentId:
+          type: string
+          description: The identifier for the stay component.
+          nullable: true
+        saleableComponentId:
+          type: string
+          description: The identifier for the saleable component.
+          nullable: true
+        totalPax:
+          type: string
+          description: The total number of passengers.
+          nullable: true
+        stayProductComponentVersion:
+          type: string
+          description: The version of the stay product component.
+          nullable: true
+        stayProductComponentGroupIndex:
+          type: string
+          description: The group index of the stay product component.
+          nullable: true
+    AccomUnit:
+      required:
+        - avail
+        - code
+        - fcp
+        - occ
+        - price
+        - pricePP
+        - priced
+        - qty
+      type: object
+      properties:
+        avail:
+          required:
+            - "true"
+          type: string
+          description: The availability status of the unit.
+          nullable: true
+        code:
+          required:
+            - "true"
+          type: string
+          description: The unique code for the unit.
+          nullable: true
+        accomUnitId:
+          type: string
+          description: The accommodation unit ID.
+          nullable: true
+        productUnitId:
+          type: string
+          description: The product unit ID.
+          nullable: true
+        saleableUnitId:
+          type: string
+          description: The saleable unit ID.
+          nullable: true
+        productUnitVersion:
+          type: string
+          description: The version of the product unit.
+          nullable: true
+        contractedUnitId:
+          type: string
+          description: The contracted unit ID.
+          nullable: true
+        totalSupplement:
+          type: string
+          description: The total supplement for the unit.
+          nullable: true
+        minAd:
+          type: string
+          description: The minimum number of adults for the unit.
+          nullable: true
+        max:
+          type: string
+          description: The maximum occupancy for the unit.
+          nullable: true
+        maxAd:
+          type: string
+          description: The maximum number of adults for the unit.
+          nullable: true
+        priced:
+          description: The pricing information associated with the unit.
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Price"
+        occ:
+          description: The occupancy details of the unit.
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Occ"
+        ffpp:
+          type: string
+          description: The FFPP (possibly "Free for Purchase Price") of the unit.
+          nullable: true
+        pricePP:
+          required:
+            - "true"
+          type: string
+          description: The price per person for the unit.
+          nullable: true
+        min:
+          type: string
+          description: The minimum price for the unit.
+          nullable: true
+        price:
+          required:
+            - "true"
+          type: string
+          description: The total price for the unit.
+          nullable: true
+        qty:
+          required:
+            - "true"
+          type: string
+          description: The quantity available for the unit.
+          nullable: true
+        discPP:
+          type: string
+          description: The discount per person for the unit.
+          nullable: true
+        disc:
+          type: string
+          description: The total discount for the unit.
+          nullable: true
+        atcomId:
+          type: string
+          description: The atcom ID for the unit.
+          nullable: true
+        board:
+          type: string
+          description: "The type of board (e.g., full board, half board)."
+          nullable: true
+        fcp:
+          type: boolean
+          description: Flag indicating whether FCP (Fully Commissionable Price) applies
+            to the unit.
+        alternateBoards:
+          type: array
+          description: A list of alternate board options available for the unit.
+          nullable: true
+          items:
+            $ref: "#/components/schemas/AlternateBoards"
+    AdditionalParams:
+      type: object
+      properties:
+        pieces:
+          type: integer
+          description: Number of ancillaries pieces
+          format: int32
+          nullable: true
+        type:
+          type: string
+          description: Type of ancillary
+          nullable: true
+        unit:
+          type: string
+          description: Ancillary unit
+          nullable: true
+        weight:
+          type: string
+          description: Ancillary weight
+          nullable: true
+    AdditionalPriceInfo:
+      type: object
+      properties:
+        isPriceChanged:
+          type: boolean
+          description: The is price changed
+          nullable: true
+        oldPrice:
+          type: number
+          description: The old price
+          format: float
+          nullable: true
+        newPrice:
+          type: number
+          description: The new price
+          format: float
+          nullable: true
+        diffPrice:
+          type: number
+          description: The diff price
+          format: float
+          nullable: true
+    AltBoard:
+      type: object
+      properties:
+        board:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/BoardType"
+    AltUnit:
+      type: object
+      properties:
+        unit:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/InnerUnit"
+    AlternateBoards:
+      type: object
+      properties:
+        totalComponentUnitPriceDifference:
+          type: string
+          description: The total component unit price difference
+          nullable: true
+        totalComponentUnitPriceDifferencePerPerson:
+          type: string
+          description: The total component unit price difference per person
+          nullable: true
+        board:
+          type: string
+          description: The board
+          nullable: true
+    Ancillary:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ancillary ID
+          nullable: true
+        type:
+          type: string
+          description: Ancillary type
+          nullable: true
+        additionalParams:
+          description: Additional ancillary params
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AdditionalParams"
+    AncillaryInfo:
+      type: object
+      properties:
+        paxId:
+          type: string
+          description: The passenger ID
+          nullable: true
+        ancillary:
+          type: array
+          description: List of ancillaries
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Ancillary"
+    Anite:
+      type: object
+      properties:
+        board:
+          type: string
+          description: The board information
+          nullable: true
+        depPt:
+          type: string
+          description: The departure point
+          nullable: true
+        depPort:
+          type: string
+          description: The departure port
+          nullable: true
+        stay:
+          type: string
+          description: Stay information
+          nullable: true
+        outSlots:
+          type: string
+          description: Outgoing slots information
+          nullable: true
+        inSlots:
+          type: string
+          description: Incoming slots information
+          nullable: true
+        cabinClass:
+          type: string
+          description: The class of the cabin
+          nullable: true
+        price:
+          type: string
+          description: Price information
+          nullable: true
+        pricePP:
+          type: string
+          description: Price per person information
+          nullable: true
+        discount:
+          type: string
+          description: Discount information
+          nullable: true
+        deposit:
+          type: string
+          description: Deposit information
+          nullable: true
+        dreamLiner:
+          description: Whether Dreamliner is available or not
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        direct:
+          description: Whether the flight is direct
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        inDirect:
+          description: Whether the flight is indirect
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        dc:
+          type: array
+          description: List of DC items
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Dc"
+        carrier:
+          type: string
+          description: The carrier for the flight
+          nullable: true
+        charter:
+          description: Whether the flight is a charter flight
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        nonCharter:
+          description: Whether the flight is non-charter
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+    Baggage:
+      type: object
+      properties:
+        priceAd:
+          type: number
+          nullable: true
+        priceCh:
+          type: number
+          nullable: true
+        allowance:
+          type: string
+          nullable: true
+        chAge:
+          type: integer
+          format: int64
+          nullable: true
+    BoardType:
+      type: object
+      properties:
+        code:
+          type: string
+          nullable: true
+        unitCode:
+          type: string
+          nullable: true
+        price:
+          type: number
+          nullable: true
+    Charges:
+      type: object
+      properties:
+        reservationFee:
+          type: string
+          description: Reservation fee amount
+          nullable: true
+        sustainabilityTax:
+          type: string
+          description: Sustainability tax amount
+          nullable: true
+        airportTax:
+          type: number
+          description: Airport tax amount
+          format: double
+          nullable: true
+        taxAmount:
+          type: number
+          description: General tax amount
+          format: double
+          nullable: true
+    ConfigParams:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Config params ID
+          nullable: true
+        name:
+          type: string
+          description: Config params name
+          nullable: true
+        pageName:
+          type: string
+          description: Config params page name
+          nullable: true
+        url:
+          type: string
+          description: Config params URL
+          nullable: true
+        adults:
+          type: string
+          description: Adults
+          nullable: true
+        childAges:
+          type: string
+          description: Children ages
+          nullable: true
+        dreamLiner:
+          type: string
+          description: The dream liner
+          nullable: true
+        boardBasis:
+          type: string
+          description: The board basis
+          nullable: true
+        pid:
+          type: string
+          description: The pid
+          nullable: true
+        maxPrice:
+          type: string
+          description: The maximum price
+          nullable: true
+        discType:
+          type: string
+          description: The discount type
+          nullable: true
+        minDisc:
+          type: string
+          description: The minimum discount
+          nullable: true
+        maxDisc:
+          type: string
+          description: The maximum discount
+          nullable: true
+        freeKid:
+          type: string
+          description: Free kids flag
+          nullable: true
+        hlo:
+          type: string
+          description: Hand Luggage Only
+          nullable: true
+        tpa:
+          type: string
+          description: Third Party Accommodation
+          nullable: true
+        tpf:
+          type: string
+          description: Third Party Flight
+          nullable: true
+        departureAirports:
+          type: string
+          description: The departure airports
+          nullable: true
+        startDate:
+          type: string
+          description: The start date
+          nullable: true
+        endDate:
+          type: string
+          description: The end date
+          nullable: true
+        seasonYear:
+          type: string
+          description: "The season year (e.g., \"2025\")"
+          nullable: true
+        defaultSeasonYear:
+          type: string
+          description: "The default season year (e.g., \"2025\")"
+          nullable: true
+        durations:
+          type: string
+          description: Durations
+          nullable: true
+        priceRequired:
+          type: string
+          description: Price required
+          nullable: true
+        searchCriteria:
+          type: array
+          description: List of search criteria
+          nullable: true
+          items:
+            type: string
+        datesDuration:
+          type: string
+          description: Duration dates
+          nullable: true
+        stopOver:
+          type: string
+          description: Stop over
+          nullable: true
+        singleAccom:
+          type: string
+          description: Single accommodation
+          nullable: true
+        multiCentre:
+          type: string
+          description: Multi-centre
+          nullable: true
+        title:
+          type: string
+          description: The title
+          nullable: true
+        pageID:
+          type: string
+          description: The page ID
+          nullable: true
+        s_tp:
+          type: string
+          description: Search type
+          nullable: true
+        c_tp:
+          type: string
+          description: Cruise type
+          nullable: true
+        cs_order:
+          type: string
+          description: Cruise order
+          nullable: true
+        cruiseDuration:
+          type: string
+          description: Cruise duration
+          nullable: true
+    DDDeposit:
+      required:
+        - value
+      type: object
+      properties:
+        value:
+          type: number
+          description: The deposit value required for the offer
+    Date:
+      required:
+        - available
+      type: object
+      properties:
+        available:
+          type: boolean
+          description: "Availability status of the date (e.g., \"true\", \"false\"\
+            )"
+        date:
+          type: string
+          description: Date whose availability will depend in available flag
+          nullable: true
+    Dates:
+      type: object
+      properties:
+        date:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Date"
+    DatesList:
+      required:
+        - dates
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the dates list
+          nullable: true
+        count:
+          type: integer
+          description: The count of dates (as a string)
+          format: int32
+          nullable: true
+        dates:
+          type: array
+          description: List of date values
+          items:
+            $ref: "#/components/schemas/Date"
+    Dc:
+      type: object
+      properties:
+        value:
+          description: Indicates a Yes/No value
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        date:
+          type: string
+          description: The associated date
+          nullable: true
+    DepPt:
+      type: object
+      properties:
+        count:
+          type: integer
+          format: int64
+          nullable: true
+        value:
+          type: string
+          nullable: true
+    DepPts:
+      type: object
+      properties:
+        depPt:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/DepPt"
+    Desti:
+      type: object
+      properties:
+        roomId:
+          type: string
+          nullable: true
+        roomVersion:
+          type: string
+          nullable: true
+        roomType:
+          type: string
+          nullable: true
+        boardId:
+          type: string
+          nullable: true
+        boardVersion:
+          type: string
+          nullable: true
+        boardType:
+          type: string
+          nullable: true
+        boardExtraInfo:
+          type: string
+          nullable: true
+    DurationsList:
+      required:
+        - count
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the duration list
+          nullable: true
+        count:
+          type: integer
+          description: The count of items in the list
+          format: int32
+        durations:
+          type: array
+          description: List of duration values
+          nullable: true
+          items:
+            type: integer
+            format: int32
+    FareProducts:
+      type: object
+      properties:
+        ancillaryIDs:
+          type: array
+          description: List of ancillary IDs
+          nullable: true
+          items:
+            type: string
+        fareBase:
+          type: string
+          description: Fare base
+          nullable: true
+        rbd:
+          type: string
+          description: ""
+          nullable: true
+        segmentID:
+          type: string
+          description: Segment ID
+          nullable: true
+        cabinProduct:
+          type: string
+          description: Cabin Product
+          nullable: true
+    Fares:
+      required:
+        - fareAmount
+        - markup
+        - netAmount
+        - price
+        - taxAmount
+      type: object
+      properties:
+        paxType:
+          type: string
+          description: Passenger type
+          nullable: true
+        markup:
+          type: integer
+          description: Markup value
+          format: int32
+        netAmount:
+          type: number
+          description: Net amount before markup
+          format: double
+        price:
+          type: number
+          description: Final price including markup
+          format: double
+        vcc:
+          type: string
+          description: Virtual Credit Card reference
+          nullable: true
+        paxId:
+          type: string
+          description: Unique passenger identifier
+          nullable: true
+        rules:
+          type: array
+          description: Rules
+          nullable: true
+          items:
+            type: string
+        fareProducts:
+          type: array
+          description: List of products included in the Fares
+          nullable: true
+          items:
+            $ref: "#/components/schemas/FareProducts"
+        taxAmount:
+          type: number
+          description: Tax amount
+          format: double
+        fareAmount:
+          type: number
+          description: Fare amount
+          format: double
+    Filters:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the filter
+          nullable: true
+        multiselect:
+          type: array
+          description: List of multiselect options for the filter
+          nullable: true
+          items:
+            $ref: "#/components/schemas/MultiSelect"
+        singleselect:
+          type: array
+          description: List of singleselect options for the filter
+          nullable: true
+          items:
+            $ref: "#/components/schemas/SingleSelect"
+        aniteLists:
+          description: List of anite options
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Anite"
+        durationsList:
+          description: List of durations
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/DurationsList"
+        datesList:
+          description: List of dates
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/DatesList"
+        monthsList:
+          description: List of months
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/MonthsList"
+    FlightComponent:
+      type: object
+      properties:
+        departureTime:
+          type: string
+          description: The departure time
+          nullable: true
+        departureAirport:
+          type: string
+          description: The departure airport
+          nullable: true
+        src:
+          type: string
+          description: The source
+          nullable: true
+        availability:
+          type: string
+          description: The availability
+          nullable: true
+        dir:
+          type: string
+          description: The direction
+          nullable: true
+        arrivalDate:
+          type: string
+          description: The arrival date
+          nullable: true
+        flightComponentId:
+          type: string
+          description: Flight component ID
+          nullable: true
+        price:
+          description: Flight component price details
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/FlightComponentPrice"
+        sourceLegGuid:
+          type: string
+          description: Source leg Guid
+          nullable: true
+        arrivalTime:
+          type: string
+          description: The arrival time
+          nullable: true
+        options:
+          type: array
+          description: List of options
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Options"
+        stops:
+          type: string
+          description: The stops
+          nullable: true
+        id:
+          type: string
+          description: The unique identifier
+          nullable: true
+        departureDate:
+          type: string
+          description: The departure date
+          nullable: true
+        arrivalAirport:
+          type: string
+          description: The arrival airport
+          nullable: true
+        flightLegs:
+          type: array
+          description: List of flight legs
+          nullable: true
+          items:
+            $ref: "#/components/schemas/FlightLeg"
+        elapsedTime:
+          type: string
+          description: The flight duration
+          nullable: true
+    FlightComponentPrice:
+      type: object
+      properties:
+        charges:
+          description: char
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Charges"
+        discount:
+          type: string
+          description: Discount
+          nullable: true
+        pricePP:
+          type: string
+          description: Price per person
+          nullable: true
+        totalPrice:
+          type: string
+          description: Total price
+          nullable: true
+        infantPrice:
+          type: string
+          description: Price for infants
+          nullable: true
+        childPrice:
+          type: string
+          description: Price for children
+          nullable: true
+        adultPrice:
+          type: string
+          description: Price for adults
+          nullable: true
+        fares:
+          type: array
+          description: List of fares
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Fares"
+        paxPriceDetails:
+          type: array
+          description: Passenger price details
+          nullable: true
+          items:
+            $ref: "#/components/schemas/PaxPriceDetails"
+        additionalPriceInfo:
+          description: Additional price information
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AdditionalPriceInfo"
+    FlightLeg:
+      type: object
+      properties:
+        departureTime:
+          type: string
+          description: The departure time
+          nullable: true
+        journeyTime:
+          type: string
+          description: The journey time
+          nullable: true
+        departureAirport:
+          type: string
+          description: The departure airport
+          nullable: true
+        departureGuid:
+          type: string
+          description: The departure Guid
+          nullable: true
+        saleableFlightUnitGuid:
+          type: string
+          description: The saleable flight unit Guid
+          nullable: true
+        arrivalDate:
+          type: string
+          description: The arrival date
+          nullable: true
+        marketingCarrier:
+          type: string
+          description: The marketing carrier
+          nullable: true
+        sourcedFlightUnitGuid:
+          type: string
+          description: The source flight unit Guid
+          nullable: true
+        seatClass:
+          type: string
+          description: The seat class
+          nullable: true
+        arrivalTime:
+          type: string
+          description: The arrival time
+          nullable: true
+        departureDate:
+          type: string
+          description: The departure date
+          nullable: true
+        operatingCarrier:
+          type: string
+          description: The operating carrier
+          nullable: true
+        flightLegGuid:
+          type: string
+          description: The flight leg Guid
+          nullable: true
+        arrivalAirport:
+          type: string
+          description: The arrival airport
+          nullable: true
+        fltNo:
+          type: string
+          description: The flight number
+          nullable: true
+        ancillaryInfo:
+          type: array
+          description: The list of ancillary informantion
+          nullable: true
+          items:
+            $ref: "#/components/schemas/AncillaryInfo"
+        departureDateTime:
+          type: string
+          description: The departure date time
+          nullable: true
+        arrivalDateTime:
+          type: string
+          description: The arrival date time
+          nullable: true
+    Group:
+      type: object
+      properties:
+        totalOffers:
+          type: integer
+          format: int64
+          nullable: true
+        price:
+          type: string
+          nullable: true
+        pricePP:
+          type: string
+          nullable: true
+        dates:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Dates"
+        depPts:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/DepPts"
+        mode:
+          type: string
+          nullable: true
+    Holiday:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the holidays
+          nullable: true
+        totalItemsCount:
+          type: string
+          description: Total number of items
+          nullable: true
+        firstItemNum:
+          type: string
+          description: The first item number
+          nullable: true
+        lastItemNum:
+          type: string
+          description: The last item number
+          nullable: true
+        sort0:
+          type: string
+          description: Sort value 0
+          nullable: true
+        sort1:
+          type: string
+          description: Sort value 1
+          nullable: true
+        sort2:
+          type: string
+          description: Sort value 2
+          nullable: true
+        boostList:
+          description: Boost list (can be any object)
+          nullable: true
+        buryList:
+          description: Bury list (can be any object)
+          nullable: true
+        autoSelectedDuration:
+          type: integer
+          description: The auto-selected duration
+          format: int32
+          nullable: true
+        items:
+          type: array
+          description: List of items related to holidays
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Item"
+        apiVersion:
+          type: string
+          description: The API version
+          nullable: true
+        atcoreCacheVersion:
+          type: string
+          description: The cache version of Atcore
+          nullable: true
+        node:
+          type: string
+          description: The node related to the holiday
+          nullable: true
+        adults:
+          type: string
+          description: Number of adults
+          nullable: true
+        childAges:
+          type: array
+          description: The ages of children
+          nullable: true
+          items:
+            type: string
+        composerVersion:
+          type: string
+          description: The version of the composer
+          nullable: true
+        composerHost:
+          type: string
+          description: The host node of composer instance
+          nullable: true
+        composerHostIp:
+          type: string
+          description: The host IP of composer instance
+          nullable: true
+        appliedRule:
+          type: string
+          description: The rule currently applied
+          nullable: true
+        notAppliedRules:
+          type: string
+          description: The rules not applied by composer
+          nullable: true
+        searchandising-cockpit-version:
+          type: string
+          description: The version of the searchandising cockpit
+          nullable: true
+        additionalParams:
+          description: Additional parameters (key-value pairs)
+          nullable: true
+          type: object
+          additionalProperties:
+            type: string
+        cacheClient:
+          type: string
+          description: The cache client information
+          nullable: true
+        clientInfo:
+          type: string
+          description: The client info
+          nullable: true
+        sortParamList:
+          type: array
+          description: List of sorting parameters
+          nullable: true
+          items:
+            $ref: "#/components/schemas/SortParam"
+        publishDate:
+          type: string
+          description: The publish date of the holiday data
+          nullable: true
+    HolidaySearchResponse:
+      required:
+        - configParamsList
+        - filters
+        - holidays
+        - offerConditions
+      type: object
+      properties:
+        filters:
+          $ref: "#/components/schemas/Filters"
+        holidays:
+          $ref: "#/components/schemas/Holiday"
+        configParamsList:
+          $ref: "#/components/schemas/ConfigParams"
+        offerConditions:
+          $ref: "#/components/schemas/OfferConditions"
+    InnerUnit:
+      type: object
+      properties:
+        code:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        price:
+          type: number
+          nullable: true
+        pricePP:
+          type: number
+          nullable: true
+        avail:
+          type: integer
+          format: int64
+          nullable: true
+        deposit:
+          type: number
+          nullable: true
+        disc:
+          type: number
+          nullable: true
+        discPP:
+          type: number
+          nullable: true
+        dc:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        board:
+          type: string
+          nullable: true
+      example:
+        - {
+          "filters": {
+            "multiselect": [
+              {
+                "name": "BOARD BASIS",
+                "code": "BOARD",
+                "items": [
+                  {
+                    "code": "BB",
+                    "count": "31",
+                    "min": "null",
+                    "max": "null"
+                  },
+                  {
+                    "code": "HB",
+                    "count": "41",
+                    "min": "null",
+                    "max": "null"
+                  },
+                  {
+                    "code": "AI",
+                    "count": "104",
+                    "min": "null",
+                    "max": "null"
+                  },
+                  {
+                    "code": "SC",
+                    "count": "31",
+                    "min": "null",
+                    "max": "null"
+                  },
+                  {
+                    "code": "FB",
+                    "count": "4",
+                    "min": "null",
+                    "max": "null"
+                  },
+                  {
+                    "code": "HB+",
+                    "count": "2",
+                    "min": "null",
+                    "max": "null"
+                  },
+                  {
+                    "code": "RO",
+                    "count": "1",
+                    "min": "null",
+                    "max": "null"
+                  },
+                  {
+                    "code": "FB+",
+                    "count": "2",
+                    "min": "null",
+                    "max": "null"
+                  }
+                ]
+              },
+              {
+                "name": "BRAND",
+                "code": "BRAND",
+                "items": [
+                  {
+                    "code": "T",
+                    "count": "171"
+                  }
+                ]
+              },
+              {
+                "name": "AIRLINE",
+                "code": "AIRLINE",
+                "items": [
+                  {
+                    "code": "BA",
+                    "name": "BA"
+                  },
+                  {
+                    "code": "TBA",
+                    "name": "TBA"
+                  },
+                  {
+                    "code": "TOM",
+                    "name": "TOM"
+                  }
+                ]
+              },
+              {
+                "name": "HOLIDAY TYPE",
+                "code": "HLDTYP",
+                "items": [
+                  {
+                    "code": "LAKES",
+                    "count": "5",
+                    "name": "LAKES"
+                  },
+                  {
+                    "code": "BEACH",
+                    "count": "166",
+                    "name": "BEACH"
+                  }
+                ]
+              },
+              {
+                "name": "COLLECTIONS",
+                "code": "COLS",
+                "items": [
+                  {
+                    "code": "PLT",
+                    "count": "34"
+                  },
+                  {
+                    "code": "BLU",
+                    "count": "20"
+                  },
+                  {
+                    "code": "SnF",
+                    "count": "15"
+                  },
+                  {
+                    "code": "FSP",
+                    "count": "8"
+                  },
+                  {
+                    "code": "SEN",
+                    "count": "6"
+                  },
+                  {
+                    "code": "FHV",
+                    "count": "5"
+                  },
+                  {
+                    "code": "FSO",
+                    "count": "4"
+                  },
+                  {
+                    "code": "LAM",
+                    "count": "3"
+                  },
+                  {
+                    "code": "PRM",
+                    "count": "2"
+                  },
+                  {
+                    "code": "ALC",
+                    "count": "1"
+                  },
+                  {
+                    "code": "FMA",
+                    "count": "1"
+                  }
+                ]
+              },
+              {
+                "name": "DESTINATION",
+                "code": "DEST",
+                "items": [
+                  {
+                    "code": "CPV",
+                    "count": "2",
+                    "name": "Cape Verde",
+                    "parentName": "AAA",
+                    "parentCode": "AAA",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "HRV",
+                    "count": "2",
+                    "name": "Croatia",
+                    "parentName": "EEE",
+                    "parentCode": "EEE",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "CYP",
+                    "count": "13",
+                    "name": "Cyprus",
+                    "parentName": "EEE",
+                    "parentCode": "EEE",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "DOM",
+                    "count": "2",
+                    "name": "Dominican Republic",
+                    "parentName": "CCC",
+                    "parentCode": "CCC",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "EGY",
+                    "count": "7",
+                    "name": "Egypt",
+                    "parentName": "AAA",
+                    "parentCode": "AAA",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "GRC",
+                    "count": "55",
+                    "name": "Greece",
+                    "parentName": "EEE",
+                    "parentCode": "EEE",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "ITA",
+                    "count": "9",
+                    "name": "Italy",
+                    "parentName": "EEE",
+                    "parentCode": "EEE",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "JAM",
+                    "count": "3",
+                    "name": "Jamaica",
+                    "parentName": "CCC",
+                    "parentCode": "CCC",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "MEX",
+                    "count": "3",
+                    "name": "Mexico",
+                    "parentName": "FFF",
+                    "parentCode": "FFF",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "MAR",
+                    "count": "4",
+                    "name": "Morocco",
+                    "parentName": "AAA",
+                    "parentCode": "AAA",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "PRT",
+                    "count": "4",
+                    "name": "Portugal",
+                    "parentName": "EEE",
+                    "parentCode": "EEE",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "ESP",
+                    "count": "50",
+                    "name": "Spain",
+                    "parentName": "EEE",
+                    "parentCode": "EEE",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "TUN",
+                    "count": "5",
+                    "name": "Tunisia",
+                    "parentName": "AAA",
+                    "parentCode": "AAA",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "TUR",
+                    "count": "11",
+                    "name": "Turkey",
+                    "parentName": "EEE",
+                    "parentCode": "EEE",
+                    "type": "COUNTRY"
+                  },
+                  {
+                    "code": "USA",
+                    "count": "1",
+                    "name": "United States of America",
+                    "parentName": "NNN",
+                    "parentCode": "NNN",
+                    "type": "COUNTRY"
+                  }
+                ]
+              }
+            ],
+            "singleselect": [
+              {
+                "name": "accessibilityInfo",
+                "code": "accessibilityInfo",
+                "items": [
+                  {
+                    "code": "accessibilityInfo",
+                    "count": "58"
+                  }
+                ]
+              }
+            ],
+            "aniteLists": {
+              "board": "AI,BB,FB,FB+,HB,HB+,RO,SC",
+              "depPt": "ABZ,BFS,BHD,BHX,BOH,BRS,CWL,EDI,EMA,EXT,GLA,HUY,LBA,LGW,LTN,MAN,MME,NCL,NWI,SOU,STN",
+              "outSlots": "A,B,C,D",
+              "inSlots": "A,B,C,D",
+              "price": "1316.12,5835.64",
+              "pricePP": "658.06,2917.82",
+              "discount": "83.88,372.36",
+              "dreamLiner": "Y",
+              "direct": "Y",
+              "dc": [ ],
+              "carrier": "BA,TBA,TOM",
+              "charter": "Y",
+              "nonCharter": "N"
+            },
+            "durationsList": {
+              "name": "Duration Results",
+              "count": 1,
+              "durations": [
+                7
+              ]
+            },
+            "datesList": {
+              "name": "Date Results",
+              "count": "8",
+              "dates": [
+                {
+                  "available": true,
+                  "date": "2026-07-21T00:00:00+0000"
+                },
+                {
+                  "available": true,
+                  "date": "2026-07-22T00:00:00+0000"
+                },
+                {
+                  "available": true,
+                  "date": "2026-07-23T00:00:00+0000"
+                },
+                {
+                  "available": true,
+                  "date": "2026-07-24T00:00:00+0000"
+                },
+                {
+                  "available": true,
+                  "date": "2026-07-25T00:00:00+0000"
+                },
+                {
+                  "available": true,
+                  "date": "2026-07-26T00:00:00+0000"
+                },
+                {
+                  "available": true,
+                  "date": "2026-07-27T00:00:00+0000"
+                },
+                {
+                  "available": true,
+                  "date": "2026-07-28T00:00:00+0000"
+                }
+              ]
+            }
+          },
+          "holidays": {
+            "name": "Item Results",
+            "totalItemsCount": "171",
+            "firstItemNum": "1",
+            "lastItemNum": "11",
+            "items": [
+              {
+                "code": "049665",
+                "name": "Sensatori Akra Fethiye",
+                "productRangeTH": "SENSATORI",
+                "destination": "Dalaman area",
+                "siteId": [
+                  "TH"
+                ],
+                "continent": "Europe",
+                "productRange": "SENSATORI",
+                "brandCode": [
+                  "T"
+                ],
+                "aniteBrand": "T",
+                "country": "Turkey",
+                "date": "2026-07-21T00:00:00+0000",
+                "stay": "null",
+                "hotelCSP": "998",
+                "occupancy": "2a/0c/0i",
+                "disc": "238.68",
+                "tRating": "5",
+                "tripAdvisorRating": "4.7",
+                "commercialPriority": "998",
+                "packageInfo": [
+                  {
+                    "accom": [
+                      {
+                        "unit": [
+                          {
+                            "priced": {
+                              "ad": 2,
+                              "ch": 0,
+                              "in": 0
+                            },
+                            "occ": {
+                              "pax": [
+                                {
+                                  "id": "1",
+                                  "age": 30
+                                },
+                                {
+                                  "id": "2",
+                                  "age": 30
+                                }
+                              ],
+                              "ad": 2,
+                              "ch": 0,
+                              "in": 0
+                            },
+                            "code": "DD01",
+                            "qty": 1,
+                            "price": 3814.52,
+                            "pricePP": 1907.26,
+                            "disc": 238.68,
+                            "discPP": 119.34,
+                            "board": "AI",
+                            "avail": 7,
+                            "min": 1,
+                            "max": 3,
+                            "minAd": 1,
+                            "maxAd": 3,
+                            "ffpp": 2,
+                            "atcomId": "5750216"
+                          }
+                        ],
+                        "date": "2026-07-21T00:00:00+0000",
+                        "stay": 7,
+                        "id": "49665",
+                        "code": "TUDL0098",
+                        "brand": "T",
+                        "prom": "BTSN",
+                        "commPri": "998",
+                        "atcomId": "5750213/3/566/7",
+                        "type": "ACC"
+                      }
+                    ],
+                    "transport": [
+                      {
+                        "route": [
+                          {
+                            "id": "1",
+                            "dir": "O",
+                            "cycDate": "2026-07-21",
+                            "depPt": "BHX",
+                            "depDate": "2026-07-21T00:00:00+0000",
+                            "depTime": "1925",
+                            "arrPt": "DLM",
+                            "arrDate": "2026-07-22T00:00:00+0000",
+                            "arrTime": "0130",
+                            "avail": 79,
+                            "fltNo": "TOM746",
+                            "routeCd": "DLMBHX2ABHXDLM",
+                            "car": "TOM",
+                            "majorCar": "TOM",
+                            "meal": "Y",
+                            "atcomId": "6194312896/6774928",
+                            "fltDur": 405.0
+                          },
+                          {
+                            "id": "2",
+                            "dir": "I",
+                            "cycDate": "2026-07-28",
+                            "depPt": "DLM",
+                            "depDate": "2026-07-29T00:00:00+0000",
+                            "depTime": "0230",
+                            "arrPt": "BHX",
+                            "arrDate": "2026-07-29T00:00:00+0000",
+                            "arrTime": "0450",
+                            "avail": 88,
+                            "fltNo": "TOM747",
+                            "routeCd": "DLMBHX2ADLMBHX",
+                            "car": "TOM",
+                            "majorCar": "TOM",
+                            "meal": "Y",
+                            "atcomId": "6194312959/6774929",
+                            "fltDur": 420.0
+                          }
+                        ],
+                        "minAvail": 79,
+                        "majorCabin": "M",
+                        "jnyDurOut": 405.0,
+                        "jnyDurRet": 420.0
+                      }
+                    ],
+                    "date": "2026-07-21T00:00:00+0000",
+                    "stay": 7,
+                    "price": 3741.32,
+                    "pricePP": 1870.66,
+                    "deposit": 150.00,
+                    "lowDep": "Y",
+                    "coachTransfer": "Y",
+                    "worldCare": "Y",
+                    "type": "INC",
+                    "ddTerms": "Y"
+                  }
+                ],
+                "resort": "Fethiye",
+                "price": "3741.32",
+                "pricePP": "1870.66",
+                "count": 0,
+                "accessibilityInfo": "true"
+              },
+              {
+                "code": "057983",
+                "name": "Globales Bouganvilla",
+                "productRangeTH": "SplashWorld Holidays",
+                "destination": "Majorca",
+                "siteId": [
+                  "TH"
+                ],
+                "continent": "Europe",
+                "productRange": "SplashWorld Holidays",
+                "brandCode": [
+                  "T"
+                ],
+                "aniteBrand": "T",
+                "country": "Spain",
+                "date": "2026-07-21T00:00:00+0000",
+                "stay": "null",
+                "hotelCSP": "989",
+                "occupancy": "2a/0c/0i",
+                "disc": "171.48",
+                "tRating": "3.5",
+                "tripAdvisorRating": "3.8",
+                "commercialPriority": "989",
+                "packageInfo": [
+                  {
+                    "accom": [
+                      {
+                        "unit": [
+                          {
+                            "priced": {
+                              "ad": 2,
+                              "ch": 0,
+                              "in": 0
+                            },
+                            "occ": {
+                              "pax": [
+                                {
+                                  "id": "1",
+                                  "age": 30
+                                },
+                                {
+                                  "id": "2",
+                                  "age": 30
+                                }
+                              ],
+                              "ad": 2,
+                              "ch": 0,
+                              "in": 0
+                            },
+                            "code": "TW02",
+                            "qty": 1,
+                            "price": 2761.72,
+                            "pricePP": 1380.86,
+                            "disc": 171.48,
+                            "discPP": 85.74,
+                            "board": "AI",
+                            "avail": 9,
+                            "min": 1,
+                            "max": 4,
+                            "minAd": 0,
+                            "maxAd": 3,
+                            "ffpp": 2,
+                            "atcomId": "1177329674"
+                          }
+                        ],
+                        "date": "2026-07-21T00:00:00+0000",
+                        "stay": 7,
+                        "id": "57983",
+                        "code": "ESMJ0264",
+                        "brand": "T",
+                        "prom": "BTSP",
+                        "commPri": "989",
+                        "atcomId": "1177318140/3/566/7",
+                        "type": "ACC"
+                      }
+                    ],
+                    "transport": [
+                      {
+                        "route": [
+                          {
+                            "id": "1",
+                            "dir": "O",
+                            "cycDate": "2026-07-21",
+                            "depPt": "CWL",
+                            "depDate": "2026-07-21T00:00:00+0000",
+                            "depTime": "2240",
+                            "arrPt": "PMI",
+                            "arrDate": "2026-07-22T00:00:00+0000",
+                            "arrTime": "0155",
+                            "avail": 148,
+                            "fltNo": "TOM6276",
+                            "routeCd": "PMICWL2BCWLPMI",
+                            "car": "TOM",
+                            "majorCar": "TOM",
+                            "atcomId": "6194176279/6726536",
+                            "fltDur": 215.0
+                          },
+                          {
+                            "id": "2",
+                            "dir": "I",
+                            "cycDate": "2026-07-28",
+                            "depPt": "PMI",
+                            "depDate": "2026-07-29T00:00:00+0000",
+                            "depTime": "0255",
+                            "arrPt": "CWL",
+                            "arrDate": "2026-07-29T00:00:00+0000",
+                            "arrTime": "0420",
+                            "avail": 157,
+                            "fltNo": "TOM6277",
+                            "routeCd": "PMICWL2BPMICWL",
+                            "car": "TOM",
+                            "majorCar": "TOM",
+                            "atcomId": "6194176339/6726537",
+                            "fltDur": 225.0
+                          }
+                        ],
+                        "minAvail": 148,
+                        "majorCabin": "M",
+                        "jnyDurOut": 215.0,
+                        "jnyDurRet": 225.0
+                      }
+                    ],
+                    "date": "2026-07-21T00:00:00+0000",
+                    "stay": 7,
+                    "price": 2688.52,
+                    "pricePP": 1344.26,
+                    "deposit": 150.00,
+                    "lowDep": "Y",
+                    "coachTransfer": "Y",
+                    "worldCare": "Y",
+                    "type": "INC",
+                    "ddTerms": "Y"
+                  }
+                ],
+                "region": "Balearic Islands",
+                "resort": "Sa Coma",
+                "holidayType": [
+                  "BEACH"
+                ],
+                "price": "2688.52",
+                "pricePP": "1344.26",
+                "count": 0,
+                "accessibilityInfo": "true"
+              },
+              {
+                "code": "976068",
+                "name": "Mare Paphos",
+                "productRangeTH": "Platinum",
+                "siteId": [
+                  "CR"
+                ],
+                "continent": "Europe",
+                "productRange": "Platinum",
+                "brandCode": [
+                  "T"
+                ],
+                "aniteBrand": "T",
+                "country": "Cyprus",
+                "date": "2026-07-27T00:00:00+0000",
+                "stay": "null",
+                "hotelCSP": "849",
+                "occupancy": "2a/0c/0i",
+                "disc": "204.36",
+                "tRating": "5",
+                "tripAdvisorRating": "4.5",
+                "commercialPriority": "849",
+                "packageInfo": [
+                  {
+                    "accom": [
+                      {
+                        "unit": [
+                          {
+                            "priced": {
+                              "ad": 2,
+                              "ch": 0,
+                              "in": 0
+                            },
+                            "occ": {
+                              "pax": [
+                                {
+                                  "id": "1",
+                                  "age": 30
+                                },
+                                {
+                                  "id": "2",
+                                  "age": 30
+                                }
+                              ],
+                              "ad": 2,
+                              "ch": 0,
+                              "in": 0
+                            },
+                            "code": "DD05",
+                            "qty": 1,
+                            "price": 3261.80,
+                            "pricePP": 1630.90,
+                            "disc": 204.36,
+                            "discPP": 102.18,
+                            "board": "AI",
+                            "avail": 4,
+                            "min": 1,
+                            "max": 2,
+                            "minAd": 1,
+                            "maxAd": 2,
+                            "ffpp": 2,
+                            "atcomId": "5822504955"
+                          }
+                        ],
+                        "date": "2026-07-27T00:00:00+0000",
+                        "stay": 7,
+                        "id": "976068",
+                        "code": "CYPH0061",
+                        "brand": "T",
+                        "prom": "BTPL",
+                        "commPri": "849",
+                        "atcomId": "4584898679/3/572/7",
+                        "type": "ACC"
+                      }
+                    ],
+                    "transport": [
+                      {
+                        "route": [
+                          {
+                            "id": "1",
+                            "dir": "O",
+                            "cycDate": "2026-07-27",
+                            "depPt": "GLA",
+                            "depDate": "2026-07-27T00:00:00+0000",
+                            "depTime": "1555",
+                            "arrPt": "PFO",
+                            "arrDate": "2026-07-27T00:00:00+0000",
+                            "arrTime": "2250",
+                            "avail": 129,
+                            "fltNo": "TOM1122",
+                            "routeCd": "PFOGLA1AGLAPFO",
+                            "car": "TOM",
+                            "majorCar": "TOM",
+                            "meal": "Y",
+                            "atcomId": "6193845845/6626513",
+                            "fltDur": 455.0
+                          },
+                          {
+                            "id": "2",
+                            "dir": "I",
+                            "cycDate": "2026-08-03",
+                            "depPt": "PFO",
+                            "depDate": "2026-08-04T00:00:00+0000",
+                            "depTime": "0005",
+                            "arrPt": "GLA",
+                            "arrDate": "2026-08-04T00:00:00+0000",
+                            "arrTime": "0325",
+                            "avail": 130,
+                            "fltNo": "TOM1123",
+                            "routeCd": "PFOGLA1APFOGLA",
+                            "car": "TOM",
+                            "majorCar": "TOM",
+                            "meal": "Y",
+                            "atcomId": "6193845905/6626514",
+                            "fltDur": 520.0
+                          }
+                        ],
+                        "minAvail": 129,
+                        "majorCabin": "M",
+                        "jnyDurOut": 455.0,
+                        "jnyDurRet": 520.0
+                      }
+                    ],
+                    "date": "2026-07-27T00:00:00+0000",
+                    "stay": 7,
+                    "price": 3203.64,
+                    "pricePP": 1601.82,
+                    "deposit": 150.00,
+                    "lowDep": "Y",
+                    "coachTransfer": "Y",
+                    "worldCare": "Y",
+                    "type": "INC",
+                    "ddTerms": "Y"
+                  }
+                ],
+                "region": "Paphos Area",
+                "resort": "Paphos",
+                "holidayType": [
+                  "BEACH"
+                ],
+                "price": "3203.64",
+                "pricePP": "1601.82",
+                "count": 0,
+                "accessibilityInfo": "true"
+              }
+            ],
+            "apiVersion": "3.49",
+            "atcoreCacheVersion": "3.357.8.20794",
+            "node": "swagger@0.1",
+            "adults": "2",
+            "appliedRule": "th_search_beach",
+            "searchandisingCockpitVersion": "0.1",
+            "sortParamList": [
+              {
+                "sortBy": "CommPriority",
+                "sortType": "Descending",
+                "sortLevel": 1
+              },
+              {
+                "sortBy": "Price",
+                "sortType": "Ascending",
+                "sortLevel": 2
+              }
+            ],
+            "publishDate": "2024-11-11T09:22:01"
+          },
+          "configParamsList": {
+            "id": "THSearchGlobalConfig",
+            "name": "globalParameterXQOI3NYY",
+            "pageName": "INITIALSEARCH",
+            "hlo": "",
+            "tpa": "",
+            "tpf": "",
+            "multiCentre": "N"
+          }
+        }
+    InternalErrorResponse:
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          type: string
+    Item:
+      required:
+        - count
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the item
+          nullable: true
+        code:
+          type: string
+          description: The code of the item
+          nullable: true
+        name:
+          type: string
+          description: The name of the item
+          nullable: true
+        productRange_TH:
+          type: string
+          description: The product range for Thailand
+          nullable: true
+        destination:
+          type: string
+          description: The destination related to the item
+          nullable: true
+        geoLevel:
+          type: string
+          description: Geographical level for the item
+          nullable: true
+        siteId:
+          type: array
+          description: List of site IDs
+          nullable: true
+          items:
+            type: string
+        continent:
+          type: string
+          description: The continent of the destination
+          nullable: true
+        productRange:
+          type: string
+          description: The product range of the item
+          nullable: true
+        facilities:
+          type: array
+          description: List of facilities associated with the item
+          nullable: true
+          items:
+            type: string
+        stayPossible:
+          type: string
+          description: Indicates if staying is possible at the destination
+          nullable: true
+        shipCode:
+          type: string
+          description: "The code of the ship, if applicable"
+          nullable: true
+        brandCode:
+          type: array
+          description: List of brand codes associated with the item
+          nullable: true
+          items:
+            type: string
+        aniteBrand:
+          type: string
+          description: The Anite brand name
+          nullable: true
+        country:
+          type: string
+          description: The country where the item is located
+          nullable: true
+        date:
+          type: string
+          description: The date associated with the item
+          nullable: true
+        stay:
+          type: string
+          description: Duration or type of stay
+          nullable: true
+        shellCSP:
+          type: string
+          description: The shell CSP associated with the item
+          nullable: true
+        hotelCSP:
+          type: string
+          description: The hotel CSP associated with the item
+          nullable: true
+        departurePoint:
+          type: string
+          description: The departure point for the item
+          nullable: true
+        occupancy:
+          type: string
+          description: Occupancy type of the item
+          nullable: true
+        disc:
+          type: string
+          description: The discount associated with the item
+          nullable: true
+        depPort:
+          type: string
+          description: The departure port for the item
+          nullable: true
+        arrPort:
+          type: string
+          description: The arrival port for the item
+          nullable: true
+        stayLocationCode:
+          type: string
+          description: The code for the stay location
+          nullable: true
+        itemSubType:
+          type: string
+          description: The sub-type of the item
+          nullable: true
+        itemType:
+          type: string
+          description: The type of the item
+          nullable: true
+        shipName:
+          type: string
+          description: "The name of the ship, if applicable"
+          nullable: true
+        tRating:
+          type: string
+          description: The rating of the item
+          nullable: true
+        tripAdvisorRating:
+          type: string
+          description: The TripAdvisor rating of the item
+          nullable: true
+        commercialPriority:
+          type: string
+          description: The commercial priority of the item
+          nullable: true
+        holidayCategory:
+          type: string
+          description: The holiday category of the item
+          nullable: true
+        arrAirport:
+          type: string
+          description: The arrival airport for the item
+          nullable: true
+        packageInfo:
+          type: array
+          description: List of package info objects
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Offer"
+        offers:
+          type: array
+          description: List of offers related to the item
+          nullable: true
+          items:
+            $ref: "#/components/schemas/ItemOffers"
+        items:
+          type: array
+          description: Nested list of items (recursive)
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Item"
+        region:
+          type: string
+          description: The region associated with the item
+          nullable: true
+        resort:
+          type: string
+          description: The resort where the item is located
+          nullable: true
+        cruiseId:
+          type: string
+          description: "The cruise ID, if applicable"
+          nullable: true
+        departurePort:
+          type: string
+          description: The departure port of the item
+          nullable: true
+        holidayType:
+          type: array
+          description: List of holiday types
+          nullable: true
+          items:
+            type: string
+        stayLocationName:
+          type: string
+          description: The name of the stay location
+          nullable: true
+        price:
+          type: string
+          description: The price of the item
+          nullable: true
+        pricePP:
+          type: string
+          description: Price per person for the item
+          nullable: true
+        count:
+          type: integer
+          description: The count of the item
+          format: int64
+        resp_type:
+          type: string
+          description: The response type for the item
+          nullable: true
+        resultsPerPage:
+          type: string
+          description: The number of results per page
+          nullable: true
+        offsetNumber:
+          type: string
+          description: The offset number for pagination
+          nullable: true
+        pageNumber:
+          type: string
+          description: The current page number
+          nullable: true
+        sortBy:
+          type: string
+          description: The sorting parameter for the item
+          nullable: true
+        firstResNumber:
+          type: string
+          description: The first reservation number
+          nullable: true
+        lastResNumber:
+          type: string
+          description: The last reservation number
+          nullable: true
+        sort0:
+          type: string
+          description: Sorting parameter 0
+          nullable: true
+        sort1:
+          type: string
+          description: Sorting parameter 1
+          nullable: true
+        sort2:
+          type: string
+          description: Sorting parameter 2
+          nullable: true
+        aniteLists:
+          description: Object related to Anite lists
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Anite"
+        duration:
+          description: The stay duration object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Stays"
+        recordType:
+          type: string
+          description: The record type
+          nullable: true
+        recordSubType:
+          type: string
+          description: The record subtype
+          nullable: true
+        accommodationType:
+          type: string
+          description: The type of accommodation
+          nullable: true
+        hotelType:
+          type: string
+          description: The type of hotel
+          nullable: true
+        cruiseCountries:
+          type: array
+          description: List of cruise countries
+          nullable: true
+          items:
+            type: string
+        cruiseAreas:
+          type: array
+          description: List of cruise areas
+          nullable: true
+          items:
+            type: string
+        customerRating:
+          type: string
+          description: The customer rating for the item
+          nullable: true
+        locationCommercialPriority:
+          type: string
+          description: The commercial priority of the location
+          nullable: true
+        excursionPrice:
+          type: string
+          description: The price of the excursion
+          nullable: true
+        accessibilityInfo:
+          type: string
+          description: The accessibility information for the item
+          nullable: true
+        musementOffers:
+          type: array
+          description: List of Musement offers
+          nullable: true
+          items:
+            $ref: "#/components/schemas/MusementOffer"
+    ItemAccom:
+      type: object
+      properties:
+        unit:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/ItemUnit"
+        pt:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Pt"
+        date:
+          type: string
+          nullable: true
+        stay:
+          type: integer
+          format: int32
+          nullable: true
+        id:
+          type: string
+          nullable: true
+        subId:
+          type: string
+          nullable: true
+        code:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        prom:
+          type: string
+          nullable: true
+        rating:
+          type: string
+          nullable: true
+        cty1:
+          type: string
+          nullable: true
+        cty2:
+          type: string
+          nullable: true
+        cty3:
+          type: string
+          nullable: true
+        commPri:
+          type: string
+          nullable: true
+        tracs:
+          type: string
+          nullable: true
+        atcomId:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        ext:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+    ItemOffers:
+      type: object
+      properties:
+        date:
+          type: string
+          description: The date associated with the offer
+          nullable: true
+        sdate:
+          type: string
+          description: The start date of the offer
+          nullable: true
+        edate:
+          type: string
+          description: The end date of the offer
+          nullable: true
+        siteId:
+          type: string
+          description: The site ID associated with the offer
+          nullable: true
+        brand:
+          type: string
+          description: The brand associated with the offer
+          nullable: true
+        commercialPriority:
+          type: integer
+          description: The commercial priority of the offer
+          format: int32
+          nullable: true
+        disc:
+          type: string
+          description: The discount associated with the offer
+          nullable: true
+        discPP:
+          type: string
+          description: The per person discount associated with the offer
+          nullable: true
+        currency:
+          type: string
+          description: The currency used in the offer
+          nullable: true
+        totalSupplements:
+          type: string
+          description: The total supplements added to the offer
+          nullable: true
+        totalFund:
+          type: string
+          description: The total fund related to the offer
+          nullable: true
+        totalFee:
+          type: string
+          description: The total fee associated with the offer
+          nullable: true
+        accom:
+          type: array
+          description: A list of accommodation components related to the offer
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Accom"
+        productId:
+          type: string
+          description: The product ID associated with the offer
+          nullable: true
+        lowDep:
+          type: string
+          description: The lowest deposit amount required for the offer
+          nullable: true
+        coachTransfer:
+          type: string
+          description: The availability of coach transfers for the offer
+          nullable: true
+        worldCare:
+          type: string
+          description: The world care associated with the offer
+          nullable: true
+        transport:
+          description: The transport details for the offer
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Transport"
+        type:
+          type: string
+          description: The type of offer
+          nullable: true
+        stay:
+          type: string
+          description: The stay duration or type associated with the offer
+          nullable: true
+        pricePP:
+          type: string
+          description: The price per person associated with the offer
+          nullable: true
+        price:
+          type: string
+          description: The total price associated with the offer
+          nullable: true
+        deposit:
+          type: string
+          description: The deposit amount required for the offer
+          nullable: true
+        productType:
+          type: string
+          description: The product type of the offer
+          nullable: true
+    ItemUnit:
+      required:
+        - avail
+        - qty
+      type: object
+      properties:
+        srcInfo:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/SrcInfo"
+        priced:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Priced"
+        occ:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Occ"
+        altBoard:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AltBoard"
+        altUnit:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AltUnit"
+        code:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        qty:
+          type: integer
+          format: int64
+        price:
+          type: number
+          nullable: true
+        pricePP:
+          type: number
+          nullable: true
+        disc:
+          type: number
+          nullable: true
+        discPP:
+          type: number
+          nullable: true
+        board:
+          type: string
+          nullable: true
+        avail:
+          type: integer
+          format: int64
+        min:
+          type: integer
+          format: int64
+          nullable: true
+        max:
+          type: integer
+          format: int64
+          nullable: true
+        minAd:
+          type: integer
+          format: int64
+          nullable: true
+        maxAd:
+          type: integer
+          format: int64
+          nullable: true
+        minCh:
+          type: integer
+          format: int64
+          nullable: true
+        maxCh:
+          type: integer
+          format: int64
+          nullable: true
+        minIn:
+          type: integer
+          format: int64
+          nullable: true
+        maxIn:
+          type: integer
+          format: int64
+          nullable: true
+        minAdAge:
+          type: integer
+          format: int64
+          nullable: true
+        maxAdAge:
+          type: integer
+          format: int64
+          nullable: true
+        minInAge:
+          type: integer
+          format: int64
+          nullable: true
+        ffpp:
+          type: integer
+          format: int64
+          nullable: true
+        dc:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        tracs:
+          type: string
+          nullable: true
+        atcomId:
+          type: string
+          nullable: true
+        fromCode:
+          type: string
+          nullable: true
+        fromBoard:
+          type: string
+          nullable: true
+        nRef:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+    KeyData:
+      type: object
+      properties:
+        destiDetails:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Desti"
+    Month:
+      type: object
+      properties:
+        month:
+          type: string
+          description: "The name of the month (e.g., \"January\")"
+          nullable: true
+        seasonType:
+          type: string
+          description: "The season type (e.g., \"summer\", \"winter\")"
+          nullable: true
+        seasonYear:
+          type: string
+          description: "The season year (e.g., \"2025\")"
+          nullable: true
+        available:
+          type: string
+          description: "Availability status of the month (e.g., \"yes\", \"no\")"
+          nullable: true
+    MonthsList:
+      type: object
+      properties:
+        months:
+          type: array
+          description: List of months
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Month"
+    MultiCentre:
+      required:
+        - date
+        - priced
+      type: object
+      properties:
+        priced:
+          description: The priced details for the multi-centre offer
+          allOf:
+            - $ref: "#/components/schemas/Priced"
+        date:
+          type: string
+          description: The date associated with the multi-centre offer
+        stay:
+          type: integer
+          description: The number of nights or duration of the stay
+          format: int32
+          nullable: true
+        id:
+          type: string
+          description: The unique identifier for the multi-centre offer
+          nullable: true
+        code:
+          type: string
+          description: The code for the multi-centre offer
+          nullable: true
+        itin:
+          type: string
+          description: The itinerary code associated with the multi-centre offer
+          nullable: true
+        name:
+          type: string
+          description: The name of the multi-centre offer
+          nullable: true
+        brand:
+          type: string
+          description: The brand name associated with the multi-centre offer
+          nullable: true
+        prom:
+          type: string
+          description: The promotional code or offer related to the multi-centre
+          nullable: true
+        cty1:
+          type: string
+          description: The first country in the multi-centre itinerary
+          nullable: true
+        cty2:
+          type: string
+          description: The second country in the multi-centre itinerary
+          nullable: true
+        cty3:
+          type: string
+          description: The third country in the multi-centre itinerary
+          nullable: true
+        commPri:
+          type: string
+          description: The commercial priority of the offer
+          nullable: true
+        centres:
+          type: integer
+          description: The number of centres involved in the multi-centre offer
+          format: int32
+          nullable: true
+        bkToBk:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+            - description: ""
+        price:
+          type: number
+          description: The total price for the multi-centre offer
+          nullable: true
+        pricePP:
+          type: number
+          description: The price per person for the multi-centre offer
+          nullable: true
+        disc:
+          type: number
+          description: The discount applied to the offer
+          nullable: true
+        discPP:
+          type: number
+          description: The discount per person applied to the offer
+          nullable: true
+        atcomId:
+          type: string
+          description: The ATCOM ID for the multi-centre offer
+          nullable: true
+    MultiSelect:
+      required:
+        - items
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the multiselect
+          nullable: true
+        code:
+          type: string
+          description: The unique code for the multiselect
+          nullable: true
+        items:
+          type: array
+          description: List of items available for selection
+          items:
+            $ref: "#/components/schemas/MultiSelectItem"
+    MultiSelectItem:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The unique code for the item
+          nullable: true
+        count:
+          type: string
+          description: The count of the item
+          nullable: true
+        min:
+          type: string
+          description: The minimum value for the item
+          nullable: true
+        max:
+          type: string
+          description: The maximum value for the item
+          nullable: true
+        name:
+          type: string
+          description: The name of the item
+          nullable: true
+        parentName:
+          type: string
+          description: The parent name related to this item
+          nullable: true
+        parentCode:
+          type: string
+          description: The parent code related to this item
+          nullable: true
+        type:
+          type: string
+          description: The type of the item (could represent different categories
+            or types)
+          nullable: true
+    MusementOffer:
+      required:
+        - categoryName
+        - categoryUuid
+        - name
+        - uuid
+      type: object
+      properties:
+        uuid:
+          required:
+            - "true"
+          type: string
+          description: The unique identifier for the Musement offer.
+          nullable: true
+        name:
+          required:
+            - "true"
+          type: string
+          description: The name of the Musement offer.
+          nullable: true
+        categoryUuid:
+          required:
+            - "true"
+          type: string
+          description: The unique identifier for the category of the offer.
+          nullable: true
+        categoryName:
+          required:
+            - "true"
+          type: string
+          description: The name of the category of the offer.
+          nullable: true
+        desc:
+          type: string
+          description: A description of the Musement offer.
+          nullable: true
+    Occ:
+      type: object
+      properties:
+        ad:
+          type: string
+          description: Number of adults
+          nullable: true
+        ch:
+          type: string
+          description: Number of children
+          nullable: true
+        in:
+          type: string
+          description: Number of infants
+          nullable: true
+        pax:
+          type: array
+          description: List of passengers
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Pax"
+    Offer:
+      required:
+        - dDDeposit
+        - multiCentre
+        - priceFreeze
+        - stay
+      type: object
+      properties:
+        priceFreeze:
+          description: Price freeze details
+          allOf:
+            - $ref: "#/components/schemas/PriceFreeze"
+        dDDeposit:
+          description: Deposit information details
+          allOf:
+            - $ref: "#/components/schemas/DDDeposit"
+        multiCentre:
+          description: Multi-centre details
+          allOf:
+            - $ref: "#/components/schemas/MultiCentre"
+        accom:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/ItemAccom"
+        altBoard:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AltBoard"
+        transport:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/OfferTransport"
+        baggage:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Baggage"
+        group:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Group"
+        date:
+          type: string
+          nullable: true
+        stay:
+          type: integer
+          format: int32
+        price:
+          type: number
+          nullable: true
+        pricePP:
+          type: number
+          nullable: true
+        deposit:
+          type: number
+          nullable: true
+        lowDep:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        coachTransfer:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        carHire:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        worldCare:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        hlo:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        type:
+          type: string
+          nullable: true
+        ddTerms:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+    OfferConditions:
+      type: object
+      properties:
+        dateLTE:
+          type: string
+          description: The date less than
+          nullable: true
+        dateGTE:
+          type: string
+          description: The date greater than
+          nullable: true
+        dateNEq:
+          type: array
+          description: The date not equal to
+          nullable: true
+          items:
+            type: string
+        dateEq:
+          type: array
+          description: The date equal to
+          nullable: true
+          items:
+            type: string
+        offerDurations:
+          type: array
+          description: The duration string
+          nullable: true
+          items:
+            type: string
+        daysBefore:
+          type: integer
+          description: Number of days before
+          format: int32
+          nullable: true
+        arrivalPts:
+          type: array
+          description: The arrival gateways
+          nullable: true
+          items:
+            type: string
+        flightType:
+          type: array
+          description: The flight type
+          nullable: true
+          items:
+            type: string
+        carrier:
+          type: array
+          description: The carrier
+          nullable: true
+          items:
+            type: string
+    OfferTransport:
+      required:
+        - minAvail
+      type: object
+      properties:
+        route:
+          type: array
+          nullable: true
+          items:
+            nullable: true
+            allOf:
+              - $ref: "#/components/schemas/Route"
+        minAvail:
+          type: integer
+          format: int64
+        majorCabin:
+          type: string
+          nullable: true
+        jnyDurOut:
+          type: number
+          nullable: true
+        jnyDurRet:
+          type: number
+          nullable: true
+    Option:
+      type: object
+      properties:
+        code:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/RouteOptionCode"
+        avail:
+          type: integer
+          format: int64
+          nullable: true
+        priceAd:
+          type: number
+          nullable: true
+        priceCh:
+          type: number
+          nullable: true
+    Options:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Option code
+          nullable: true
+        price:
+          type: string
+          description: Option price
+          nullable: true
+    Pax:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The passenger ID
+          nullable: true
+        age:
+          type: integer
+          description: The passenger age
+          format: int32
+          nullable: true
+    PaxPriceDetails:
+      type: object
+      properties:
+        fareAmount:
+          type: number
+          description: Fare amount
+          format: float
+          nullable: true
+        netAmount:
+          type: number
+          description: Net amount
+          format: float
+          nullable: true
+        taxes:
+          type: array
+          description: List of taxes
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Tax"
+        paxType:
+          type: string
+          description: Passenger type
+          nullable: true
+    Price:
+      type: object
+      properties:
+        charges:
+          description: Charges
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Charges"
+        discount:
+          type: string
+          description: Discount
+          nullable: true
+        pricePP:
+          type: string
+          description: Price per person
+          nullable: true
+        totalPrice:
+          type: string
+          description: Total price
+          nullable: true
+        infantPrice:
+          type: string
+          description: Price for infants
+          nullable: true
+        childPrice:
+          type: string
+          description: Price for children
+          nullable: true
+        adultPrice:
+          type: string
+          description: Price for adults
+          nullable: true
+        fares:
+          type: array
+          description: List of fares
+          nullable: true
+          items:
+            $ref: "#/components/schemas/Fares"
+        additionalPriceInfo:
+          description: Additional price information
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AdditionalPriceInfo"
+    PriceFreeze:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code associated with the price freeze
+          nullable: true
+        price:
+          type: number
+          description: The price of the offer under the price freeze
+          nullable: true
+        pricePP:
+          type: number
+          description: Price per person under the price freeze
+          nullable: true
+        autoCanxDays:
+          type: integer
+          description: Number of days before auto cancellation occurs
+          format: int64
+          nullable: true
+    Priced:
+      required:
+        - ad
+      type: object
+      properties:
+        ad:
+          required:
+            - "true"
+          type: integer
+          description: Number of adults
+          format: int32
+          nullable: true
+        ch:
+          type: integer
+          description: Number of children
+          format: int32
+          nullable: true
+        in:
+          type: integer
+          description: Number of infants
+          format: int32
+          nullable: true
+    Pt:
+      type: object
+      properties:
+        depPt:
+          type: string
+          nullable: true
+        arrPt:
+          type: string
+          nullable: true
+    Route:
+      required:
+        - avail
+      type: object
+      properties:
+        option:
+          type: array
+          nullable: true
+          items:
+            nullable: true
+            allOf:
+              - $ref: "#/components/schemas/Option"
+        id:
+          type: string
+          nullable: true
+        dir:
+          type: string
+          nullable: true
+        cycDate:
+          type: string
+          nullable: true
+        depPt:
+          type: string
+          nullable: true
+        depDate:
+          type: string
+          nullable: true
+        depTime:
+          type: string
+          nullable: true
+        arrPt:
+          type: string
+          nullable: true
+        arrDate:
+          type: string
+          nullable: true
+        arrTime:
+          type: string
+          nullable: true
+        avail:
+          type: integer
+          format: int64
+        fltNo:
+          type: string
+          nullable: true
+        viaPt:
+          type: string
+          nullable: true
+        routeCd:
+          type: string
+          nullable: true
+        routeKey:
+          type: string
+          nullable: true
+        clazz:
+          type: string
+          nullable: true
+        car:
+          type: string
+          nullable: true
+        opCar:
+          type: string
+          nullable: true
+        majorCar:
+          type: string
+          nullable: true
+        fare:
+          type: string
+          nullable: true
+        taxes:
+          type: number
+          nullable: true
+        equip:
+          type: string
+          nullable: true
+        dreamliner:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        meal:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        ext:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/YesNo"
+        src:
+          type: string
+          nullable: true
+        atcomId:
+          type: string
+          nullable: true
+        fltDur:
+          type: number
+          nullable: true
+    RouteOptionCode:
+      type: string
+      enum:
+        - ELR
+        - PRE
+        - XSP
+    SingleSelect:
+      required:
+        - items
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the singleselect
+          nullable: true
+        code:
+          type: string
+          description: The unique code for the singleselect
+          nullable: true
+        items:
+          type: array
+          description: List of items available for selection in the singleselect
+          items:
+            $ref: "#/components/schemas/SingleSelectItem"
+    SingleSelectItem:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The unique code for the item
+          nullable: true
+        count:
+          type: string
+          description: The count of the item
+          nullable: true
+        min:
+          type: string
+          description: The minimum value for the item
+          nullable: true
+        max:
+          type: string
+          description: The maximum value for the item
+          nullable: true
+        name:
+          type: string
+          description: The name of the item (could be a string or other data type)
+          nullable: true
+        parentName:
+          description: The parent name related to this item (could be a string or
+            other data type)
+          nullable: true
+        parentCode:
+          description: The parent code related to this item (could be a string or
+            other data type)
+          nullable: true
+        refineProperties:
+          description: Additional refine properties for the item (could be a dynamic
+            object)
+          nullable: true
+    SortParam:
+      required:
+        - sortBy
+        - sortLevel
+        - sortType
+      type: object
+      properties:
+        sortBy:
+          required:
+            - "true"
+          type: string
+          description: The field by which to sort.
+          nullable: true
+        sortType:
+          required:
+            - "true"
+          type: string
+          description: "The type of sorting (e.g., ascending, descending)."
+          nullable: true
+        sortLevel:
+          required:
+            - "true"
+          type: integer
+          description: "The level of sorting, used when multiple sorting criteria\
+            \ are needed."
+          format: int32
+          nullable: true
+    SrcInfo:
+      type: object
+      properties:
+        keyData:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/KeyData"
+        accom:
+          type: string
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        board:
+          type: string
+          nullable: true
+        system:
+          type: string
+          nullable: true
+        value:
+          type: string
+          nullable: true
+        supplier:
+          type: string
+          nullable: true
+    Stays:
+      required:
+        - stays
+      type: object
+      properties:
+        stays:
+          type: array
+          items:
+            type: integer
+            format: int32
+    Tax:
+      type: object
+      properties:
+        value:
+          type: number
+          description: Tax value
+          format: float
+          nullable: true
+        code:
+          type: string
+          description: Tax code
+          nullable: true
+    Transport:
+      type: object
+      properties:
+        transportComponentGuid:
+          type: string
+          description: The transport component guid
+          nullable: true
+        price:
+          description: The price
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Price"
+        sourceComponentGuid:
+          type: string
+          description: The source component guid
+          nullable: true
+        flightComponent:
+          type: array
+          description: The flight component
+          nullable: true
+          items:
+            $ref: "#/components/schemas/FlightComponent"
+        saleableComponentGuid:
+          type: string
+          description: The saleable component
+          nullable: true
+        haulType:
+          type: string
+          description: The haul type
+          nullable: true
+    YesNo:
+      type: string
+      enum:
+        - "Y"
+        - "N"
