@@ -1,7 +1,3 @@
-Here’s a complete, ready-to-paste `README.md` for your repo.
-
----
-
 # API Description Tool
 
 Convert **OpenAPI 3.x YAML** into clean, human-readable **Params / Request Body / Response Body** tables in **CSV** or **Excel**. Designed so both technical and non-technical folks can read your API specs quickly — and so you can keep them updated fast after each epic.
