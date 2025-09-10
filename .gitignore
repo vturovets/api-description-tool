@@ -1,54 +1,45 @@
-# --- Python bytecode / cache
+# python
 __pycache__/
 *.py[cod]
-*$py.class
-
-# --- Virtual environments (your project has /venv)
-.venv/
-venv/
-env/
-ENV/
-.python-version
-
-# --- Packaging / build artifacts
+*.egg-info/
+.dist-info/
+.build/
 build/
 dist/
-.eggs/
-*.egg-info/
-*.whl
-*.spec            # PyInstaller spec (if you generate one)
+.venv/
+.env/
+venv/
 
-# --- Test & type tooling
+# tests
 .pytest_cache/
-.mypy_cache/
-.pyre/
 .coverage
-.coverage.*
-coverage.xml
 htmlcov/
 
-# --- IDE / Editor (you have api_description_tool.iml and .idea/)
+# IDE
 .idea/
-*.iml
 .vscode/
 
-# --- OS junk
+# OS
 .DS_Store
-Thumbs.db
-desktop.ini
 
-# --- Generated outputs from your tool
-*.xlsx
-*.csv
-~$*.xlsx          # Excel lock files
-*.log
-logs/
+# notebooks
+.ipynb_checkpoints/
 
-# --- Local private config (keep the example in VCS)
-config.ini
-!config_example.ini
+# Office/Excel temp locks
+~$*
 
-# --- Misc temp files
+# Local scratch/backups
 *.tmp
 *.bak
-~$*
+*.swp
+*.swo
+
+# Tool outputs (don’t version generated tables)
+*_api_tab_desc.xlsx
+*_api_tab_desc_params.csv
+*_api_tab_desc_req_body.csv
+*_api_tab_desc_res_body.csv
+
+# Stray copies in test fixtures
+tests/data/*- Copy.*
+tests/data/*_anonym.yml

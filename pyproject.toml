@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "api_description_tool"
+version = "0.1.0"
+description = "Convert OpenAPI 3.0.x YAML specs into tabular API descriptions (Excel/CSV)."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Volodymyr Turovets" }
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "openpyxl>=3.1",
+    "openapi-spec-validator>=0.7.1"
+]
+
+[project.scripts]
+api-desc-tool = "api_description_tool.cli:main"

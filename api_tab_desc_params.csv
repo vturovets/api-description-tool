@@ -1,3 +1,0 @@
-Name,Mandatory,Expected Value(s),In,Description,Examples
-x-correlation-id,True,string,header,,
-x-environment,False,,header,,
