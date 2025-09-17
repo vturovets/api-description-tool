@@ -1,0 +1,734 @@
+openapi: 3.0.0
+info:
+  title: ABC NGS Search Panel API Specifications for Inventory Availability for
+    Packages.
+  description: These APIs offers the basic availability of flying airports, accommodations,
+    geo locations and check-in/journey dates for Package products.
+  version: "1.0"
+  contact:
+    url: https://www.google.com/
+servers:
+  - url: 'https://www.google.com/'
+    description: Dev environment, for functional testing
+paths:
+  /v1/packages/availability/departures:
+    get:
+      description: API provides the json response with list of departure airports and
+        airport groups for a given search criteria query parameters
+      parameters:
+        - name: brand
+          in: query
+          description: source market brand defined for package in Product Service. Few of
+            them are ABC_BE for ABC BE package, ABC_NL for ABC NL Package,
+            EFG_BE for EFG BE package. Similar values going to define for NR and
+            WR source markets also.
+          required: true
+          schema:
+            type: string
+        - name: language
+          in: query
+          required: true
+          description: Country language locale codes. nl_BE, nl_NL,nl,en,en_GB etc
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          description: array of destinations or hotels with format of `<>:<>`.
+            Please note the code must base trips geo code defined by product
+            service and accommodation code defined by destimo.
+          schema:
+            type: array
+            items:
+              type: string
+        - name: when
+          in: query
+          description: Date of departure/journy start date
+          required: false
+          schema:
+            type: string
+            format: dd-MM-yyyy
+        - name: flexible
+          in: query
+          description: boolean value with true or false on departure date flexibility.
+          required: false
+          schema:
+            type: string
+        - name: flexibleDays
+          in: query
+          description: numeric value starts from 0 days. If the value is greater than 0,
+            when (Deparature date) value present in request & flexible=true then
+            api checks the airports availability within +- flexibleDays
+            deparature date.
+          required: false
+          schema:
+            type: string
+      tags:
+        - Package Inventory Availability APIs
+      responses:
+        "200":
+          description: Holiday search panel information successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/deparaturesresults"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericError"
+
+components:
+  schemas:
+    deparaturesresults:
+      description: departure airports information
+      type: object
+      properties:
+        error:
+          type: string
+          description: error resonse when request parameters are invalid or any issue with
+            response process.
+        data:
+          type: object
+          required:
+            - airports
+          properties:
+            airports:
+              type: array
+              description: array of airports objects includes availability, airport groups,
+                synonyms information.
+              items:
+                $ref: "#/components/schemas/airports"
+            airportGroups:
+              type: array
+              description: array of airportGroups objects includes airport groups and list
+                of linked airpots.
+              items:
+                $ref: "#/components/schemas/airportGroups"
+    airports:
+      description: airport information
+      type: object
+      required:
+        - id
+        - name
+        - available
+      properties:
+        id:
+          type: string
+          description: 3 letters IATA airport code
+        name:
+          description: localised airport name
+          type: string
+        available:
+          type: boolean
+          description: airport availability true/false
+        synonym:
+          type: string
+          description: synonym name for airport
+        groups:
+          type: array
+          items:
+            type: string
+            description: airport group code.
+    airportGroups:
+      description: airport information
+      type: object
+      required:
+        - id
+        - name
+        - available
+        - children
+      properties:
+        id:
+          type: string
+          description: airport group code configured by in content service or product
+            service
+        name:
+          description: localised airport group name
+          type: string
+        available:
+          type: boolean
+          description: airport groups availability true/false
+        children:
+          type: array
+          items:
+            type: string
+            description: airport code.
+    countriesresults:
+      description: list of countries information
+      type: object
+      properties:
+        error:
+          type: string
+          description: error resonse when request parameters are invalid or any issue with
+            response process.
+        data:
+          type: object
+          required:
+            - countries
+          properties:
+            countries:
+              type: array
+              description: array of country objects includes the availability, multi select
+                enabled, few days durations enabled, SEO URL and synonyms
+                information.
+              items:
+                $ref: "#/components/schemas/countries"
+    countries:
+      description: countries information
+      type: object
+      required:
+        - id
+        - name
+        - available
+      properties:
+        id:
+          type: string
+          description: geo country code defined in product service or content service
+        name:
+          description: localised country name
+          type: string
+        available:
+          type: boolean
+          description: country availability true/false
+        type:
+          type: string
+          description: geo type. default is COUNTRY
+        synonym:
+          type: string
+          description: synonym name for country
+        multiSelect:
+          type: boolean
+          description: multi select in UI allowed for this country or not
+        fewDaysFlag:
+          type: boolean
+          description: country has inventory with few days duration or less number of
+            nights.
+        parentCode:
+          type: string
+          description: parent geo code for this country if applicable
+        url:
+          type: string
+          description: SEO Country page URL
+    destinationsresults:
+      description: list of destinations information for each country requested in request.
+      type: object
+      properties:
+        error:
+          type: string
+          description: error resonse when request parameters are invalid or any issue with
+            response process.
+        data:
+          type: object
+          required:
+            - countries
+          properties:
+            countries:
+              type: array
+              description: array of country objects includes the availability, multi select
+                enabled, few days durations enabled, SEO URL and synonyms
+                information.
+              items:
+                $ref: "#/components/schemas/destinationCountries"
+    destinationCountries:
+      description: countries information
+      type: object
+      required:
+        - id
+        - name
+        - available
+        - children
+      properties:
+        id:
+          type: string
+          description: geo country code defined in product service or content service
+        name:
+          description: localised country name
+          type: string
+        available:
+          type: boolean
+          description: country availability true/false
+        type:
+          type: string
+          description: geo type. default is COUNTRY
+        synonym:
+          type: string
+          description: synonym name for country
+        multiSelect:
+          type: boolean
+          description: multi select in UI allowed for this country or not
+        fewDaysFlag:
+          type: boolean
+          description: country has inventory with few days duration or less number of
+            nights.
+        parentCode:
+          type: string
+          description: parent geo code for this country if applicable
+        parentType:
+          type: string
+          description: parent type from geo like CONTINET
+        url:
+          type: string
+          description: SEO Country page URL
+        children:
+          type: array
+          description: linked destinations and sub destinations with type REGION/
+            DESTINATION/RESORT
+          items:
+            $ref: "#/components/schemas/destinations"
+    destinations:
+      description: countries information
+      type: object
+      required:
+        - id
+        - name
+        - available
+      properties:
+        id:
+          type: string
+          description: geo country code defined in product service or content service
+        name:
+          description: localised country name
+          type: string
+        available:
+          type: boolean
+          description: country availability true/false
+        type:
+          type: string
+          description: geo type. default is COUNTRY
+        synonym:
+          type: string
+          description: synonym name for country
+        multiSelect:
+          type: boolean
+          description: multi select in UI allowed for this country or not
+        fewDaysFlag:
+          type: boolean
+          description: country has inventory with few days duration or less number of
+            nights.
+        parentCode:
+          type: string
+          description: parent geo code for this country if applicable
+        parentType:
+          type: string
+          description: parent type from geo like CONTINET
+        url:
+          type: string
+          description: SEO Country page URL
+        children:
+          type: array
+          description: linked destinations and sub destinations with type REGION/
+            DESTINATION/RESORT
+          items:
+            $ref: "#/components/schemas/subdestinations"
+    subdestinations:
+      description: countries information
+      type: object
+      required:
+        - id
+        - name
+        - available
+      properties:
+        id:
+          type: string
+          description: geo country code defined in product service or content service
+        name:
+          description: localised country name
+          type: string
+        available:
+          type: boolean
+          description: country availability true/false
+        type:
+          type: string
+          description: geo type. default is COUNTRY
+        synonym:
+          type: string
+          description: synonym name for country
+        multiSelect:
+          type: boolean
+          description: multi select in UI allowed for this country or not
+        fewDaysFlag:
+          type: boolean
+          description: country has inventory with few days duration or less number of
+            nights.
+        parentCode:
+          type: string
+          description: parent geo code for this country if applicable
+        parentType:
+          type: string
+          description: parent type from geo like CONTINET
+        url:
+          type: string
+          description: SEO Country page URL
+        children:
+          type: array
+          description: linked destinations and sub destinations with type REGION/
+            DESTINATION/RESORT
+          items:
+            $ref: "#/components/schemas/subdestinations"
+    suggestionsresults:
+      description: list of recommendations/suggestions for a requested keyword and other
+        query parameters in request.
+      type: object
+      properties:
+        error:
+          type: string
+          description: error resonse when request parameters are invalid or any issue with
+            response process.
+        data:
+          type: object
+          properties:
+            countries:
+              type: array
+              description: array of country objects includes the availability, multi select
+                enabled, few days durations enabled and synonyms information.
+              items:
+                $ref: "#/components/schemas/suggestions"
+            destinations:
+              type: array
+              description: array of destination objects includes the availability, multi
+                select enabled, few days durations enabled and synonyms
+                information.
+              items:
+                $ref: "#/components/schemas/suggestions"
+            hotels:
+              type: array
+              description: array of hotel objects includes the availability, multi select
+                enabled, few days durations enabled and synonyms information.
+              items:
+                $ref: "#/components/schemas/suggestions"
+            collections:
+              type: array
+              description: array of collection (commercial products i.e ABC BLUE, PLATINUM
+                etc) objects includes the availability, multi select enabled,
+                few days durations enabled and synonyms information.
+              items:
+                $ref: "#/components/schemas/suggestions"
+            other:
+              type: array
+              description: array of any other objects that not covered or part of
+                countries/destinations/hotels/collections. This object includes
+                the availability, multi select enabled, few days durations
+                enabled, SEO URL and synonyms information.
+              items:
+                $ref: "#/components/schemas/suggestions"
+    suggestions:
+      description: suggestions information
+      type: object
+      required:
+        - id
+        - name
+        - available
+        - children
+      properties:
+        id:
+          type: string
+          description: geo code defined in product service or content service
+        name:
+          description: localised name
+          type: string
+        available:
+          type: boolean
+          description: availability true/false
+        type:
+          type: string
+          description: geo type (COUNTRY/REGION/DESTINATION/RESORT/HOTEL)
+        synonym:
+          type: string
+          description: synonym name
+        multiSelect:
+          type: boolean
+          description: multi select in UI allowed or not
+        fewDaysFlag:
+          type: boolean
+          description: country has inventory with few days duration or less number of
+            nights.
+        parent:
+          type: string
+          description: parent code for this suggestion
+        parentName:
+          type: string
+          description: parent name
+    check-insresults:
+      description: flight/hotel check-in date information
+      type: object
+      properties:
+        error:
+          type: string
+          description: error resonse when request parameters are invalid or any issue with
+            response process.
+        data:
+          type: object
+          required:
+            - airports
+          properties:
+            checkIns:
+              type: array
+              description: array of checkIns objects includes availble date information.
+              items:
+                $ref: "#/components/schemas/check-ins"
+    check-ins:
+      description: airport information
+      type: object
+      properties:
+        date:
+          type: string
+          description: date string with format dd-MM-yyyy
+    ConfigurationAvailability:
+      type: object
+      properties:
+        error:
+          type: "string"
+          description: error response when request parameters are invalid or any issue with response process.
+          default: null
+        errorCode:
+          type: "number"
+          description: ""
+        data:
+          type: "object"
+          properties:
+            holidaySearchConfiguration:
+              $ref: "#/components/schemas/HolidaySearchConfiguration"
+    HolidaySearchConfiguration:
+      type: object
+      description: Holiday search configuration details for pax,flexibility and defaults.
+      required:
+        - defaults
+        - party
+        - flexibility
+      properties:
+        defaults:
+          $ref: "#/components/schemas/Defaults"
+        durations:
+          $ref: "#/components/schemas/Durations"
+        party:
+          $ref: "#/components/schemas/Party"
+        roomsConfiguration:
+          $ref: "#/components/schemas/RoomsConfiguration"
+        flexibility:
+          $ref: "#/components/schemas/Flexibility"
+    Defaults:
+      type: object
+      required:
+        - adults
+        - nonAdults
+      properties:
+        baseDeepLinkUrl:
+          type: "string"
+          description: ""
+          default: null
+          format: uri
+        adults:
+          type: integer
+          description: ""
+          format: int32
+          default: 2
+        nonAdults:
+          type: integer
+          description: ""
+          format: int32
+    Durations:
+      type: "array"
+      description: Holiday search durations
+      items:
+        type: "object"
+        required:
+          - id
+          - name
+          - isDefault
+        properties:
+          id:
+            type: "string"
+            description: ""
+            example: 7115
+          name:
+            type: "string"
+            description: ""
+            example: 7 nachten
+          isDefault:
+            type: "boolean"
+            description: ""
+    Party:
+      type: object
+      required:
+        - maxParty
+        - maxAdults
+        - maxNonAdults
+        - infantMaxAge
+        - childrenMaxAge
+        - maxInfantPerAdult
+        - maxChildrenPerAdult
+        - minAdultsPerInfant
+        - minAdultsPerBooking
+      properties:
+        maxParty:
+          type: integer
+          format: int32
+          description: ""
+          example: 9
+        maxAdults:
+          type: integer
+          format: int32
+          description: ""
+          example: 9
+        maxNonAdults:
+          type: integer
+          format: int32
+          description: ""
+          example: 8
+        infantMaxAge:
+          type: integer
+          format: int32
+          description: ""
+          example: 1
+        childrenMaxAge:
+          type: integer
+          format: int32
+          description: ""
+          example: 17
+        maxInfantPerAdult:
+          type: integer
+          format: int32
+          description: ""
+          example: 1
+        maxChildrenPerAdult:
+          type: integer
+          format: int32
+          description: ""
+          example: 8
+        minAdultsPerBooking:
+          type: integer
+          format: int32
+          description: ""
+          example: 1
+        minAdultsPerInfant:
+          type: integer
+          format: int32
+          description: ""
+          example: 1
+    RoomsConfiguration:
+      type: object
+      required:
+        - autoRoomAllocationSwitch
+        - villaAvailable
+        - maxPaxSwitch
+        - defaultNoOfRooms
+        - maxNoOfRooms
+        - singleRoom
+      properties:
+        autoRoomAllocationSwitch:
+          type: "boolean"
+          description: ""
+        villaAvailable:
+          type: "boolean"
+          description: ""
+          example: false
+        maxPaxSwitch:
+          type: "boolean"
+          description: ""
+        defaultNoOfRooms:
+          type: "integer"
+          description: ""
+          example: 5
+        maxNoOfRooms:
+          type: "integer"
+          description: ""
+          example: 9
+        singleRoom:
+          type: "boolean"
+          description: ""
+          example: false
+    Flexibility:
+      type: object
+      description: Flexibilities
+      properties:
+        isFlexibleAllowed:
+          type: "boolean"
+          description: ""
+        flexibleList:
+          type: "array"
+          items:
+            type: "object"
+            required:
+              - id
+              - name
+              - isDefault
+            properties:
+              id:
+                type: "string"
+                description: ""
+                example: 3
+              name:
+                type: "string"
+                description: ""
+                example: +- 3 dagen
+              isDefault:
+                type: "boolean"
+                description: ""
+    getNameByCode:
+      description: Queried airport and destination's list
+      type: object
+      properties:
+        error:
+          type: string
+          description: error response when request parameters are invalid or any issue with
+            response process.
+        errorCode:
+          type: string
+          description: error response code when request parameters are invalid or any issue with
+            response process.
+        airports:
+          type: array
+          items:
+            $ref: "#/components/schemas/airport"
+        destinations:
+          type: array
+          items:
+            $ref: "#/components/schemas/destination"
+    airport:
+      description: airport information
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: 3 letters IATA airport code
+        name:
+          description: localised airport name
+          type: string
+    destination:
+      description: destination information
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        id:
+          type: string
+          description: Destination code
+        name:
+          description: localised destination name
+          type: string
+        type:
+          type: string
+          description: destination type
+          example: HOTEL
+    GenericError:
+      type: object
+      description: default error message format
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 500
+        status:
+          type: integer
+          format: int32
+          example: 500
+        message:
+          type: string
+          example: Internal server error

@@ -1,4 +1,4 @@
-# API Description Tool — SRS v2 (Updated 2025-09-15)
+# API Description Tool — SRS v2 (Updated 2025-09-17)
 
 ## 1. Purpose & Context
 
@@ -30,7 +30,7 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 
 - **BA / PO**: reads tables, annotates descriptions, shares with business.
 - **Backend dev**: verifies schema, constraints, and required flags quickly.
-- 
+- **QA**: uses tabular view for test design.
 
 ## 4. Functional Requirements
 
@@ -45,6 +45,7 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 - `[input] validate=True|False` — run `openapi-spec-validator`.
 - `[output] format=csv|xlsx`
 - `[output] file_name=<base>` — when not equal to default (`api_tab_desc`), overrides base name.
+- CSV delimiter is fixed to `,` (no localization at this time).
 
 ### FR3. Tables
 
@@ -77,23 +78,27 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 - Number/Integer: `min`, `max`, `exclusiveMin`, `exclusiveMax`, `multipleOf`.
 - Array: `items=<type or $ref name>`, `minItems`, `maxItems`, `uniqueItems`.
 - Object: `additionalProperties` (boolean or schema name).
-- Present `enum` as comma-separated list.
-- Merge across `allOf` (union of `properties`, union of `required`; last-write-wins for scalar constraints). `oneOf/anyOf`: minimal union of properties plus note “oneOf/anyOf” when ambiguity remains.
+- Present `enum` as comma-separated list **without truncation**.
+- Merge across `allOf` (union of `properties`, union of `required`; last-write-wins for scalar constraints). `oneOf/anyOf`: **union of properties** with a note “oneOf/anyOf” (no combinatorial expansion).
 
 ### FR6. Validation
 
-- When `validate=True`, run OpenAPI schema validation; on failure, print errors and **continue** if `--force` (future) or **abort** (current behavior: abort).
+- When `validate=True`, run OpenAPI schema validation; on failure, **abort** (no `--force` yet).
 
-### FR7. Empty sections
+### FR7. Examples
+
+- Prefer **property-level** `example`/`examples` where present. No media-type examples are considered.
+
+### FR8. Empty sections
 
 - Writers create files/sheets with headers even if no rows were discovered.
 
-### FR8. CSV & Excel writers
+### FR9. CSV & Excel writers
 
-- CSV: three files, UTF‑8 with newline `\n`.
+- CSV: three files, UTF‑8 with newline `\n` and delimiter `,`.
 - Excel: one workbook with three sheets named `Params`, `Req Body`, `Res Body`.
 
-### FR9. Logging & UX
+### FR10. Logging & UX
 
 - CLI prints: input file, output base, format, validation on/off, row counts per section.
 
@@ -108,9 +113,9 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 ## 6. Assumptions & Decisions
 
 - Prefer `application/json` content; fall back to first media type when JSON missing.
-- Arrays: request does **not** add separate primitive item row; response **does**.
+- **Array asymmetry**: request does **not** add a separate primitive item row; response **does**.
 - “Mandatory” derived from `required`, path params implied required by spec.
-- Examples: use `example`/`examples` text if present; otherwise blank.
+- Examples: property-level only.
 
 ## 7. Error Handling
 
@@ -121,7 +126,7 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 ## 8. Risks
 
 - Complex `oneOf/anyOf` may not flatten meaningfully.
-- External refs not expanded.
+- External refs not expanded (by design).
 
 ## 9. Testing
 
@@ -132,12 +137,10 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 
 ## 10. Roadmap (Change Requests candidates)
 
-- External/remote `$ref` resolution (HTTP files).
-- Per‑operation CSV split (optional).
 - Example payload synthesis (from schema).
 - HTML portal export (single‑page, links per path).
-- i18n: localized column names.
-- Add `--force` to continue after validation errors with warnings.
+- i18n (deferred).
+- `--force` to continue after validation errors with warnings.
 - Schema diffs across versions (breaking? reason) → table.
 
 ## 11. Glossary
