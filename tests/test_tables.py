@@ -59,3 +59,38 @@ def test_extract_constraints_variants():
         {"type": "object", "additionalProperties": {"$ref": "#/components/schemas/Extra"}}
     )
     assert "additionalProperties=Extra" in ev_object_ref
+
+def test_request_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
+    spec = valid_openapi_spec_dict
+    spec["components"]["schemas"]["PetRequest"]["properties"]["vaccinations"] = {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string"},
+                "date": {"type": "string"},
+            },
+        },
+    }
+
+    rows = build_request_body_table(spec, config={})
+    target = next(
+        row
+        for row in rows
+        if row["Path"] == "/vaccinations[0]" and row["Property"] == "type"
+    )
+    assert target["Mandatory"] is True
+
+
+def test_response_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
+    spec = valid_openapi_spec_dict
+    spec["components"]["schemas"]["PetResponse"]["properties"]["kinds"]["minItems"] = 1
+
+    rows = build_response_body_table(spec, config={})
+    target = next(
+        row
+        for row in rows
+        if row.get("Status") == "200" and row["Path"] == "/kinds[0]" and row["Property"] == ""
+    )
+    assert target["Mandatory"] is True

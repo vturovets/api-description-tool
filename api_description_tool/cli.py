@@ -100,8 +100,10 @@ def main():
         validate_flag = _to_bool(in_section.get("validate", "True"), default=True)
         fmt = (out_section.get("format") or "xlsx").strip().lower()
 
+        input_path = Path(args.input_file)
+
         # default base name: <input_stem>_api_tab_desc
-        default_base = f"{Path(args.input_file).stem}_api_tab_desc"
+        default_base = f"{input_path.stem}_api_tab_desc"
         cfg_base = (out_section.get("file_name") or "").strip()
 
         if args.output_file:
@@ -110,6 +112,11 @@ def main():
             base_name = cfg_base
         else:
             base_name = default_base
+
+        print(f"Input file: {input_path}")
+        print(f"Resolved output base: {Path(base_name).resolve()}")
+        print(f"Selected format: {fmt}")
+        print(f"Validation enabled: {validate_flag}")
 
         # --- Load YAML ---
         spec = load_yaml(args.input_file)
@@ -137,6 +144,10 @@ def main():
         res = _ensure_min_rows(res_body, "res")
         if res_body and all("Status" in r for r in res_body):
             res = res_body
+
+        print(f"Parameter table rows: {len(params)}")
+        print(f"Request body table rows: {len(req_body)}")
+        print(f"Response body table rows: {len(res)}")
 
         # --- Write output ---
         if fmt in {"xlsx", "excel"}:

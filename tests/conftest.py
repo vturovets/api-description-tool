@@ -112,8 +112,16 @@ def valid_openapi_spec_dict():
 
 @pytest.fixture
 def invalid_openapi_spec_dict():
-    """Intentionally invalid (missing top-level 'openapi'). Still includes empty paths to keep CLI running when validation is skipped."""
-    return {"info": {"title": "bad", "version": "0"}, "paths": {}}
+    """Intentionally invalid (missing top-level 'openapi'). Still includes a single
+    path to keep CLI running when validation is skipped."""
+    return {
+        "info": {"title": "bad", "version": "0"},
+        "paths": {
+            "/health": {
+                "get": {"responses": {"200": {"description": "ok"}}}
+            }
+        },
+    }
 
 
 @pytest.fixture
