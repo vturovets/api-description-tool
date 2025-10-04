@@ -52,6 +52,13 @@ def test_extract_constraints_variants():
     for token in ["string", "enum=a,b", "minLen=1", "maxLen=5", "pattern=^x$"]:
         assert token in ev
 
+    ev_object_bool = extract_constraints({"type": "object", "additionalProperties": True})
+    assert "additionalProperties=true" in ev_object_bool
+
+    ev_object_ref = extract_constraints(
+        {"type": "object", "additionalProperties": {"$ref": "#/components/schemas/Extra"}}
+    )
+    assert "additionalProperties=Extra" in ev_object_ref
 
 def test_request_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
     spec = valid_openapi_spec_dict
