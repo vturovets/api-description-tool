@@ -1,57 +1,109 @@
+# api_description_tool/cli.py
+from pathlib import Path
 import argparse
 import sys
-from pathlib import Path
 
-from .config import load_config
-from .parser import load_yaml, validate_openapi
-from .tables import (
+from api_description_tool.config import load_config
+from api_description_tool.parser import load_yaml, validate_openapi
+from api_description_tool.tables import (
     build_request_params_table,
     build_request_body_table,
     build_response_body_table,
 )
-from .writer_csv import write_csv
-from .writer_excel import write_excel
+from api_description_tool.writer_excel import write_excel
+from api_description_tool.writer_csv import write_csv
 
-_TRUE = {"1", "true", "yes", "on"}
+# CR-001 filtering
+from api_description_tool.filter import load_filter_rules, apply_filters, FilteringError
 
 
-def _to_bool(v, default=True):
-    if v is None:
+def _to_bool(val, default=True):
+    """Parse True/False from various string/bool inputs."""
+    if isinstance(val, bool):
+        return val
+    if val is None:
         return default
-    return str(v).strip().lower() in _TRUE
+    s = str(val).strip().lower()
+    if s in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    return default
 
 
-def _ensure_min_rows(rows, kind: str):
+def _ensure_min_rows(rows, kind):
+    """
+    Ensure writers always have at least headers to emit.
+    Returns the original list if non-empty; otherwise, a single empty row
+    with the expected columns for the given table kind.
+    """
     if rows:
         return rows
+
     if kind == "params":
-        return [{"Name": "", "Mandatory": False, "Expected Value(s)": "", "In": "", "Description": "", "Examples": ""}]
-    if kind == "req":
-        return [{"Path": "", "Property": "", "Mandatory": False, "Expected Value(s)": "", "Description": "", "Examples": ""}]
-    return [{"Status": "", "Path": "", "Property": "", "Mandatory": False, "Expected Value(s)": "", "Description": "", "Examples": ""}]
+        # Name | Mandatory | Expected Value(s) | In | Description | Examples
+        return [
+            {
+                "Name": "",
+                "Mandatory": "",
+                "Expected Value(s)": "",
+                "In": "",
+                "Description": "",
+                "Examples": "",
+            }
+        ]
+    elif kind == "req":
+        # Path | Property | Mandatory | Expected Value(s) | Description | Examples
+        return [
+            {
+                "Path": "",
+                "Property": "",
+                "Mandatory": "",
+                "Expected Value(s)": "",
+                "Description": "",
+                "Examples": "",
+            }
+        ]
+    elif kind == "res":
+        # Status | Path | Property | Mandatory | Expected Value(s) | Description | Examples
+        return [
+            {
+                "Status": "",
+                "Path": "",
+                "Property": "",
+                "Mandatory": "",
+                "Expected Value(s)": "",
+                "Description": "",
+                "Examples": "",
+            }
+        ]
+    else:
+        return [{}]
 
 
 def main():
-    parser = argparse.ArgumentParser(description="API Description Tool - Convert OpenAPI 3.x YAML to tables")
+    parser = argparse.ArgumentParser(
+        description="API Description Tool - Convert OpenAPI 3.x YAML to tables"
+    )
     parser.add_argument("input_file", help="Path to OpenAPI YAML file")
     parser.add_argument("output_file", nargs="?", help="Optional output base/file")
     parser.add_argument("--config", default="config.ini", help="Path to config file")
     args = parser.parse_args()
 
     try:
-        print("Parsing config…")
-        cfg = load_config(args.config)
+        # --- Config ---
+        cfg = load_config(args.config)  # returns a dict with sections or {}
 
         out_section = cfg.get("output", {}) if isinstance(cfg, dict) else {}
         in_section = cfg.get("input", {}) if isinstance(cfg, dict) else {}
 
         validate_flag = _to_bool(in_section.get("validate", "True"), default=True)
-        fmt = (out_section.get("format") or "csv").strip().lower()
+        fmt = (out_section.get("format") or "xlsx").strip().lower()
 
-        # Default base name: <input_stem>_api_tab_desc
-        # Precedence: positional output_file > non-default config.file_name > derived from input
+        # default base name: <input_stem>_api_tab_desc
         default_base = f"{Path(args.input_file).stem}_api_tab_desc"
         cfg_base = (out_section.get("file_name") or "").strip()
+
         if args.output_file:
             base_name = args.output_file
         elif cfg_base and cfg_base.lower() != "api_tab_desc":
@@ -59,30 +111,38 @@ def main():
         else:
             base_name = default_base
 
-        print("Loading YAML…")
+        # --- Load YAML ---
         spec = load_yaml(args.input_file)
 
-        if validate_flag:
-            print("Validating OpenAPI spec…")
-            validate_openapi(spec)
-        else:
-            print("Skipping validation as per config…")
+        # --- CR-001: filtering (after YAML load, before parsing/tables) ---
+        try:
+            rules = load_filter_rules(cfg)  # accepts dict-style config
+            spec = apply_filters(spec, rules)
+        except FilteringError as e:
+            print(f"[Filtering] {e}")
+            sys.exit(1)
 
-        print("Building tables…")
+        # --- (Optional) Validate OpenAPI ---
+        if validate_flag:
+            validate_openapi(spec)
+
+        # --- Build tables ---
         params = build_request_params_table(spec, cfg)
         req_body = build_request_body_table(spec, cfg)
         res_body = build_response_body_table(spec, cfg)
 
-        # Ensure writers always create files
+        # Ensure we always produce files
         params = _ensure_min_rows(params, "params")
         req_body = _ensure_min_rows(req_body, "req")
         res = _ensure_min_rows(res_body, "res")
         if res_body and all("Status" in r for r in res_body):
             res = res_body
 
+        # --- Write output ---
         if fmt in {"xlsx", "excel"}:
-            write_excel(base_name + ".xlsx", params, req_body, res)
-            print(f"✅ Wrote Excel file: {base_name}.xlsx")
+            out_path = base_name + ".xlsx"
+            write_excel(out_path, params, req_body, res)
+            print(f"✅ Wrote Excel file: {out_path}")
         elif fmt == "csv":
             write_csv(base_name, params, req_body, res)
             print(f"✅ Wrote CSV files with base: {base_name}")

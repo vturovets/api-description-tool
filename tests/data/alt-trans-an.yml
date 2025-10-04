@@ -637,7 +637,7 @@ components:
             code:
               type: string
               description: Accommodation code as defined by accommodation sourcing
-              example: A54526
+              example: VA54526
         duration:
           $ref: '#/components/schemas/StayDuration'
         rooms:

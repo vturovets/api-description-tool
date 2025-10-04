@@ -1,18 +1,33 @@
 # api_description_tool/config.py
-import configparser
+from configparser import ConfigParser
 from pathlib import Path
+from typing import Dict
 
-def get_bool(value: str) -> bool:
-    return str(value).lower() in ("1", "true", "yes", "on")
 
-def load_config(config_path: str) -> dict:
-    import configparser
-    from pathlib import Path
+def load_config(path: str) -> Dict[str, Dict[str, str]]:
+    """
+    Load config from an INI file. Returns a nested dict with known sections.
+    If the file doesn't exist, returns an empty dict (tool has sensible defaults).
+    """
+    cfg_path = Path(path)
+    if not cfg_path.exists():
+        return {}
 
-    config = configparser.ConfigParser()
-    if not Path(config_path).exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
+    parser = ConfigParser()
+    parser.read(cfg_path, encoding="utf-8")
 
-    config.read(config_path, encoding="utf-8")
-    settings = {section: dict(config.items(section)) for section in config.sections()}
-    return settings
+    out: Dict[str, Dict[str, str]] = {}
+
+    for section in parser.sections():
+        out[section] = {}
+        for k, v in parser.items(section):
+            out[section][k] = v
+
+    # Ensure sections exist even if missing (optional)
+    out.setdefault("input", {})
+    out.setdefault("output", {})
+    # 'filtering' is optional and only used by CR-001
+    if "filtering" not in out:
+        out["filtering"] = {}
+
+    return out
