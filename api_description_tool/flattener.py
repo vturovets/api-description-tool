@@ -138,6 +138,25 @@ def extract_constraints(schema: Optional[dict]) -> str:
                     pieces.append(f"maxLen={_fmt_num(schema['maxLength'])}")
                 if "pattern" in schema:
                     pieces.append(f"pattern={schema['pattern']}")
+            if s_type == "object" and "additionalProperties" in schema:
+                ap = schema.get("additionalProperties")
+
+                def _describe_additional_properties(value) -> str:
+                    if isinstance(value, bool):
+                        return "true" if value else "false"
+                    if isinstance(value, dict):
+                        ref = value.get("$ref")
+                        if isinstance(ref, str) and ref:
+                            part = ref.rsplit("/", 1)[-1]
+                            return part or ref
+                        inner_type = value.get("type")
+                        if isinstance(inner_type, str) and inner_type:
+                            return inner_type
+                        if "enum" in value:
+                            return "enum{" + ",".join(map(str, value.get("enum", []))) + "}"
+                    return "object"
+
+                pieces.append(f"additionalProperties={_describe_additional_properties(ap)}")
         # Enums apply at any level
         if "enum" in schema and s_type != "array":
             pieces.append("enum=" + ",".join(map(str, schema.get("enum", []))))
