@@ -205,7 +205,13 @@ def flatten_for_table(
     results: List[Dict[str, object]] = []
     ref_cache: Dict[str, dict] = {}
 
-    def walk(s: dict, path: str, *, depth: int) -> None:
+    def walk(
+            s: dict,
+            path: str,
+            *,
+            depth: int,
+            inherited_array_mandatory: bool,
+    ) -> None:
         if depth > max_depth:
             return
         # collapse $ref chains early
@@ -242,6 +248,7 @@ def flatten_for_table(
                 if isinstance(sub, dict) and "$ref" in sub:
                     sub = resolve_ref(sub, components, ref_stack=[], ref_cache=ref_cache) or sub
 
+                row_mandatory = bool(is_req) or inherited_array_mandatory
                 # primitives -> row
                 if isinstance(sub, dict) and sub.get("type") in {"string", "integer", "number", "boolean", "null"} or (
                         isinstance(sub, dict) and "enum" in sub and sub.get("type") != "array"
@@ -250,7 +257,7 @@ def flatten_for_table(
                         {
                             "Path": path,
                             "Property": prop,
-                            "Mandatory": bool(is_req),
+                            "Mandatory": row_mandatory,
                             "Expected Value(s)": extract_constraints(sub),
                             "Description": desc,
                             "Examples": _examples_from(sub),
@@ -258,6 +265,7 @@ def flatten_for_table(
                     )
                 elif isinstance(sub, dict) and sub.get("type") == "array":
                     items = sub.get("items") or {}
+                    array_mandatory = row_mandatory or (isinstance(sub, dict) and sub.get("minItems", 0) > 0)
                     # row for primitives-in-array (optional)
                     if emit_array_item_row and isinstance(items, dict) and (
                             items.get("type") in {"string", "integer", "number", "boolean", "null"} or "enum" in items
@@ -266,7 +274,7 @@ def flatten_for_table(
                             {
                                 "Path": f"{path}/{prop}[0]" if path else f"/{prop}[0]",
                                 "Property": "",
-                                "Mandatory": bool(is_req),
+                                "Mandatory": array_mandatory,
                                 "Expected Value(s)": extract_constraints(items),
                                 "Description": desc,
                                 "Examples": _examples_from(items) or _examples_from(sub),
@@ -277,16 +285,29 @@ def flatten_for_table(
                     if isinstance(items, dict):
                         if "$ref" in items:
                             items = resolve_ref(items, components, ref_stack=[], ref_cache=ref_cache) or items
-                        if _is_object(items):
-                            walk(items, next_path, depth=depth + 1)
+                        if isinstance(items, dict) and (
+                                _is_object(items) or items.get("type") == "array"
+                        ):
+                            walk(
+                                items,
+                                next_path,
+                                depth=depth + 1,
+                                inherited_array_mandatory=array_mandatory,
+                            )
                 else:
                     # object-ish (no primitive type), descend
                     next_path = f"{path}/{prop}" if path else f"/{prop}"
                     if isinstance(sub, dict):
-                        walk(sub, next_path, depth=depth + 1)
+                        walk(
+                            sub,
+                            next_path,
+                            depth=depth + 1,
+                            inherited_array_mandatory=inherited_array_mandatory,
+                        )
         elif s.get("type") == "array":
             items = s.get("items") or {}
             item_path = f"{path}[0]" if path else "/[0]"
+            array_mandatory = inherited_array_mandatory or (isinstance(s, dict) and s.get("minItems", 0) > 0)
             if emit_array_item_row and isinstance(items, dict) and (
                     items.get("type") in {"string", "integer", "number", "boolean", "null"} or "enum" in items
             ):
@@ -294,7 +315,7 @@ def flatten_for_table(
                     {
                         "Path": item_path,
                         "Property": "",
-                        "Mandatory": False,
+                        "Mandatory": array_mandatory,
                         "Expected Value(s)": extract_constraints(items),
                         "Description": str(s.get("description", "")),
                         "Examples": _examples_from(items) or _examples_from(s),
@@ -303,8 +324,15 @@ def flatten_for_table(
             if isinstance(items, dict):
                 if "$ref" in items:
                     items = resolve_ref(items, components, ref_stack=[], ref_cache=ref_cache) or items
-                if _is_object(items):
-                    walk(items, item_path, depth=depth + 1)
+                if isinstance(items, dict) and (
+                        _is_object(items) or items.get("type") == "array"
+                ):
+                    walk(
+                        items,
+                        item_path,
+                        depth=depth + 1,
+                        inherited_array_mandatory=array_mandatory,
+                    )
         else:
             # primitive at root -> single row
             results.append(
@@ -318,5 +346,5 @@ def flatten_for_table(
                 }
             )
 
-    walk(schema, base_path, depth=0)
+    walk(schema, base_path, depth=0, inherited_array_mandatory=False)
     return results
