@@ -71,6 +71,7 @@ def test_request_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
                 "type": {"type": "string"},
                 "date": {"type": "string"},
             },
+            "required": ["type"],
         },
     }
 
@@ -81,6 +82,13 @@ def test_request_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
         if row["Path"] == "/vaccinations[0]" and row["Property"] == "type"
     )
     assert target["Mandatory"] is True
+
+    optional = next(
+        row
+        for row in rows
+        if row["Path"] == "/vaccinations[0]" and row["Property"] == "date"
+    )
+    assert optional["Mandatory"] is False
 
 
 def test_response_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):

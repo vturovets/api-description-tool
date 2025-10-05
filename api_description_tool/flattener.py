@@ -267,7 +267,7 @@ def flatten_for_table(
                 if isinstance(sub, dict) and "$ref" in sub:
                     sub = resolve_ref(sub, components, ref_stack=[], ref_cache=ref_cache) or sub
 
-                row_mandatory = bool(is_req) or inherited_array_mandatory
+                row_mandatory = bool(is_req)
                 # primitives -> row
                 if isinstance(sub, dict) and sub.get("type") in {"string", "integer", "number", "boolean", "null"} or (
                         isinstance(sub, dict) and "enum" in sub and sub.get("type") != "array"
@@ -311,7 +311,7 @@ def flatten_for_table(
                                 items,
                                 next_path,
                                 depth=depth + 1,
-                                inherited_array_mandatory=array_mandatory,
+                                inherited_array_mandatory=array_mandatory if items.get("type") == "array" else False,
                             )
                 else:
                     # object-ish (no primitive type), descend
@@ -321,7 +321,7 @@ def flatten_for_table(
                             sub,
                             next_path,
                             depth=depth + 1,
-                            inherited_array_mandatory=inherited_array_mandatory,
+                            inherited_array_mandatory=False,
                         )
         elif s.get("type") == "array":
             items = s.get("items") or {}
@@ -350,7 +350,7 @@ def flatten_for_table(
                         items,
                         item_path,
                         depth=depth + 1,
-                        inherited_array_mandatory=array_mandatory,
+                        inherited_array_mandatory=array_mandatory if items.get("type") == "array" else False,
                     )
         else:
             # primitive at root -> single row
