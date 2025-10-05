@@ -290,6 +290,11 @@ def flatten_for_table(
                     )
 
                 if is_primitive:
+                row_mandatory = bool(is_req)
+                # primitives -> row
+                if isinstance(sub, dict) and sub.get("type") in {"string", "integer", "number", "boolean", "null"} or (
+                        isinstance(sub, dict) and "enum" in sub and sub.get("type") != "array"
+                ):
                     results.append(
                         {
                             "Path": path,
@@ -331,7 +336,7 @@ def flatten_for_table(
                                 items,
                                 next_path,
                                 depth=depth + 1,
-                                inherited_array_mandatory=array_mandatory,
+                                inherited_array_mandatory=array_mandatory if items.get("type") == "array" else False,
                             )
                     continue
 
@@ -344,6 +349,13 @@ def flatten_for_table(
                         depth=depth + 1,
                         inherited_array_mandatory=inherited_array_mandatory,
                     )
+                    if isinstance(sub, dict):
+                        walk(
+                            sub,
+                            next_path,
+                            depth=depth + 1,
+                            inherited_array_mandatory=False,
+                        )
         elif s.get("type") == "array":
             items = s.get("items") or {}
             item_path = f"{path}[0]" if path else "/[0]"
@@ -371,7 +383,7 @@ def flatten_for_table(
                         items,
                         item_path,
                         depth=depth + 1,
-                        inherited_array_mandatory=array_mandatory,
+                        inherited_array_mandatory=array_mandatory if items.get("type") == "array" else False,
                     )
         else:
             # primitive at root -> single row
