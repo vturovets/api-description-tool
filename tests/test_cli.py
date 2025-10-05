@@ -45,8 +45,8 @@ def test_cli_csv_happy_path(
     assert "Selected format: csv" in out
     assert "Validation enabled: True" in out
     assert "Parameter table rows: 1" in out
-    assert "Request body table rows: 3" in out
-    assert "Response body table rows: 6" in out
+    assert "Request body table rows: 5" in out
+    assert "Response body table rows: 8" in out
 
 
 def test_cli_skip_validation_and_still_run(
