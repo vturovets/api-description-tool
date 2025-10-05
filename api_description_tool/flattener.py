@@ -268,23 +268,43 @@ def flatten_for_table(
                     sub = resolve_ref(sub, components, ref_stack=[], ref_cache=ref_cache) or sub
 
                 row_mandatory = bool(is_req) or inherited_array_mandatory
-                # primitives -> row
-                if isinstance(sub, dict) and sub.get("type") in {"string", "integer", "number", "boolean", "null"} or (
-                        isinstance(sub, dict) and "enum" in sub and sub.get("type") != "array"
-                ):
+                sub_dict = sub if isinstance(sub, dict) else None
+                is_array = bool(sub_dict and sub_dict.get("type") == "array")
+                is_primitive = bool(
+                    sub_dict
+                    and (
+                        sub_dict.get("type") in {"string", "integer", "number", "boolean", "null"}
+                        or ("enum" in sub_dict and sub_dict.get("type") != "array")
+                    )
+                )
+                if sub_dict and (is_array or _is_object(sub_dict)):
                     results.append(
                         {
                             "Path": path,
                             "Property": prop,
                             "Mandatory": row_mandatory,
-                            "Expected Value(s)": extract_constraints(sub),
+                            "Expected Value(s)": extract_constraints(sub_dict),
                             "Description": desc,
-                            "Examples": _examples_from(sub),
+                            "Examples": _examples_from(sub_dict),
                         }
                     )
-                elif isinstance(sub, dict) and sub.get("type") == "array":
-                    items = sub.get("items") or {}
-                    array_mandatory = row_mandatory or (isinstance(sub, dict) and sub.get("minItems", 0) > 0)
+
+                if is_primitive:
+                    results.append(
+                        {
+                            "Path": path,
+                            "Property": prop,
+                            "Mandatory": row_mandatory,
+                            "Expected Value(s)": extract_constraints(sub_dict),
+                            "Description": desc,
+                            "Examples": _examples_from(sub_dict),
+                        }
+                    )
+                    continue
+
+                if is_array and sub_dict:
+                    items = sub_dict.get("items") or {}
+                    array_mandatory = row_mandatory or (sub_dict.get("minItems", 0) > 0)
                     # row for primitives-in-array (optional)
                     if emit_array_item_row and isinstance(items, dict) and (
                             items.get("type") in {"string", "integer", "number", "boolean", "null"} or "enum" in items
@@ -296,7 +316,7 @@ def flatten_for_table(
                                 "Mandatory": array_mandatory,
                                 "Expected Value(s)": extract_constraints(items),
                                 "Description": desc,
-                                "Examples": _examples_from(items) or _examples_from(sub),
+                                "Examples": _examples_from(items) or _examples_from(sub_dict),
                             }
                         )
                     # descend into object items
@@ -313,16 +333,17 @@ def flatten_for_table(
                                 depth=depth + 1,
                                 inherited_array_mandatory=array_mandatory,
                             )
-                else:
+                    continue
+
+                if sub_dict and _is_object(sub_dict):
                     # object-ish (no primitive type), descend
                     next_path = f"{path}/{prop}" if path else f"/{prop}"
-                    if isinstance(sub, dict):
-                        walk(
-                            sub,
-                            next_path,
-                            depth=depth + 1,
-                            inherited_array_mandatory=inherited_array_mandatory,
-                        )
+                    walk(
+                        sub_dict,
+                        next_path,
+                        depth=depth + 1,
+                        inherited_array_mandatory=inherited_array_mandatory,
+                    )
         elif s.get("type") == "array":
             items = s.get("items") or {}
             item_path = f"{path}[0]" if path else "/[0]"

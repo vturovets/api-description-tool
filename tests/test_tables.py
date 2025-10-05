@@ -1,9 +1,29 @@
+import pytest
+
+from api_description_tool.flattener import flatten_for_table
 from api_description_tool.tables import (
     build_request_params_table,
     build_request_body_table,
     build_response_body_table,
     extract_constraints,
 )
+
+
+@pytest.fixture
+def schema_with_object_property():
+    return {
+        "type": "object",
+        "required": ["details"],
+        "properties": {
+            "details": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                },
+            },
+            "nickname": {"type": "string"},
+        },
+    }
 
 
 def test_request_params_table(valid_openapi_spec_dict):
@@ -94,3 +114,12 @@ def test_response_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
         if row.get("Status") == "200" and row["Path"] == "/kinds[0]" and row["Property"] == ""
     )
     assert target["Mandatory"] is True
+
+
+def test_flatten_includes_object_property_row(schema_with_object_property):
+    rows = flatten_for_table(schema_with_object_property, components=None, base_path="")
+    props = {(row["Path"], row["Property"]): row for row in rows}
+
+    assert ("", "details") in props
+    assert props[("", "details")]["Mandatory"] is True
+    assert ("/details", "id") in props
