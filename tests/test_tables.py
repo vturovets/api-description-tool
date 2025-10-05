@@ -24,6 +24,12 @@ def test_request_body_table_flattening(valid_openapi_spec_dict):
     # top-level object properties (Path == "")
     assert ("", "name") in props
     assert props[("", "name")]["Mandatory"] is True
+    assert ("", "owner") in props
+    assert props[("", "owner")]["Mandatory"] is False
+    assert "object" in props[("", "owner")]["Expected Value(s)"]
+    assert ("", "tags") in props
+    assert props[("", "tags")]["Mandatory"] is False
+    assert "array<string>" in props[("", "tags")]["Expected Value(s)"]
     # arrays flatten with [0]
     assert ("/tags[0]", None) not in props  # we expect the item properties resolved on items only
     assert any(r for r in rows if r["Path"] == "/tags[0]" and r["Property"] == "") is False

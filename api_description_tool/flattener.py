@@ -268,21 +268,22 @@ def flatten_for_table(
                     sub = resolve_ref(sub, components, ref_stack=[], ref_cache=ref_cache) or sub
 
                 row_mandatory = bool(is_req)
+                sub_dict = sub if isinstance(sub, dict) else {}
+                base_row = {
+                    "Path": path,
+                    "Property": prop,
+                    "Mandatory": row_mandatory,
+                    "Expected Value(s)": extract_constraints(sub_dict),
+                    "Description": desc,
+                    "Examples": _examples_from(sub_dict),
+                }
                 # primitives -> row
                 if isinstance(sub, dict) and sub.get("type") in {"string", "integer", "number", "boolean", "null"} or (
                         isinstance(sub, dict) and "enum" in sub and sub.get("type") != "array"
                 ):
-                    results.append(
-                        {
-                            "Path": path,
-                            "Property": prop,
-                            "Mandatory": row_mandatory,
-                            "Expected Value(s)": extract_constraints(sub),
-                            "Description": desc,
-                            "Examples": _examples_from(sub),
-                        }
-                    )
+                    results.append(base_row)
                 elif isinstance(sub, dict) and sub.get("type") == "array":
+                    results.append(base_row)
                     items = sub.get("items") or {}
                     array_mandatory = row_mandatory or (isinstance(sub, dict) and sub.get("minItems", 0) > 0)
                     # row for primitives-in-array (optional)
@@ -315,6 +316,8 @@ def flatten_for_table(
                             )
                 else:
                     # object-ish (no primitive type), descend
+                    if isinstance(sub, dict) and _is_object(sub):
+                        results.append(base_row)
                     next_path = f"{path}/{prop}" if path else f"/{prop}"
                     if isinstance(sub, dict):
                         walk(
