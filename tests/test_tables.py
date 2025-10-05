@@ -80,6 +80,7 @@ def test_request_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
             "required": ["type"],
         },
     }
+    spec["components"]["schemas"]["PetRequest"].setdefault("required", []).append("vaccinations")
 
     rows = build_request_body_table(spec, config={})
     target = next(
@@ -95,6 +96,13 @@ def test_request_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):
         if row["Path"] == "/vaccinations[0]" and row["Property"] == "date"
     )
     assert optional["Mandatory"] is False
+
+    unrelated_optional = next(
+        row
+        for row in rows
+        if row["Path"] == "" and row["Property"] == "owner"
+    )
+    assert unrelated_optional["Mandatory"] is False
 
 
 def test_response_body_array_minitems_sets_mandatory(valid_openapi_spec_dict):

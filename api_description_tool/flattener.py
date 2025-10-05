@@ -285,7 +285,7 @@ def flatten_for_table(
                 elif isinstance(sub, dict) and sub.get("type") == "array":
                     results.append(base_row)
                     items = sub.get("items") or {}
-                    array_mandatory = row_mandatory or (isinstance(sub, dict) and sub.get("minItems", 0) > 0)
+                    item_mandatory = bool((sub.get("minItems", 0) or 0) > 0)
                     # row for primitives-in-array (optional)
                     if emit_array_item_row and isinstance(items, dict) and (
                             items.get("type") in {"string", "integer", "number", "boolean", "null"} or "enum" in items
@@ -294,7 +294,7 @@ def flatten_for_table(
                             {
                                 "Path": f"{path}/{prop}[0]" if path else f"/{prop}[0]",
                                 "Property": "",
-                                "Mandatory": array_mandatory,
+                                "Mandatory": item_mandatory,
                                 "Expected Value(s)": extract_constraints(items),
                                 "Description": desc,
                                 "Examples": _examples_from(items) or _examples_from(sub),
@@ -312,7 +312,7 @@ def flatten_for_table(
                                 items,
                                 next_path,
                                 depth=depth + 1,
-                                inherited_array_mandatory=array_mandatory if items.get("type") == "array" else False,
+                                inherited_array_mandatory=item_mandatory if items.get("type") == "array" else False,
                             )
                 else:
                     # object-ish (no primitive type), descend
@@ -329,7 +329,7 @@ def flatten_for_table(
         elif s.get("type") == "array":
             items = s.get("items") or {}
             item_path = f"{path}[0]" if path else "/[0]"
-            array_mandatory = inherited_array_mandatory or (isinstance(s, dict) and s.get("minItems", 0) > 0)
+            array_mandatory = bool(inherited_array_mandatory or (s.get("minItems", 0) or 0) > 0)
             if emit_array_item_row and isinstance(items, dict) and (
                     items.get("type") in {"string", "integer", "number", "boolean", "null"} or "enum" in items
             ):
