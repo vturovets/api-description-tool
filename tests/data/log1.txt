@@ -1,0 +1,235 @@
+PS C:\Users\votu\Documents\Ciklum\2025\Develop API specification\api_desc_tool> pytest -q
+FF............                                                                                                                                                                                                                   [100%]
+============================================================================================================== FAILURES ===============================================================================================================
+______________________________________________________________________________________ test_integration_generates_expected_workbook[departures] _______________________________________________________________________________________
+
+tmp_path = WindowsPath('C:/Users/votu/AppData/Local/Temp/pytest-of-votu/pytest-73/test_integration_generates_exp0'), path_filter = '/v1/packages/availability/departures', expected_filename = 'ngs_asc_airports.xlsx'
+
+    @pytest.mark.parametrize(
+        ("path_filter", "expected_filename"),
+        [
+            pytest.param(
+                "/v1/packages/availability/departures",
+                "ngs_asc_airports.xlsx",
+                id="departures",
+            ),
+            pytest.param(
+                "/v1/packages/availability/countries",
+                "ngs_asc_countries.xlsx",
+                id="countries",
+            ),
+        ],
+    )
+    def test_integration_generates_expected_workbook(tmp_path: Path, path_filter: str, expected_filename: str) -> None:
+        """Ensure the CLI output matches the expected workbook for each endpoint."""
+
+        output_base = tmp_path / Path(path_filter).name
+        config_path = _write_config(tmp_path, path_filter, output_base)
+
+>       result = _run_cli(config_path)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration_test.py:102:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests\integration_test.py:48: in _run_cli
+    return subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['C:\\Users\\votu\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-m', 'api_description_tool.cli', 'C:\\U...ig', 'C:\\Users\\votu\\AppData\\Local\\Temp\\pytest-of-votu\\pytest-73\\test_integration_generates_exp0\\config.ini'],)
+kwargs = {'cwd': WindowsPath('C:/Users/votu/Documents/Ciklum/2025/Develop API specification/api_desc_tool'), 'stderr': -1, 'stdout': -1, 'text': True}
+process = <Popen: returncode: 1 args: ['C:\\Users\\votu\\AppData\\Local\\Programs\\Pyt...>
+stdout = "Input file: C:\\Users\\votu\\Documents\\Ciklum\\2025\\Develop API specification\\api_desc_tool\\tests\\data\\NGS_ASC-...able rows: 18\n[Error] 'charmap' codec can't encode character '\\u2705' in position 0: character maps to <undefined>\n"
+stderr = '', retcode = 1
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+
+        If timeout is given, and the process takes too long, a TimeoutExpired
+        exception will be raised.
+
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['C:\\Users\\votu\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-m', 'api_description_tool.cli', 'C:\\Users\\votu\\Documents\\Ciklum\\2025\\Develop API specification\\api_desc_tool\\tests\\data\\NGS_ASC-an.yaml', '--config', 'C:\\Users\\votu\\AppData\\Local\\Temp\\pytest-of-votu\\pytest-73\\test_integration_generates_exp0\\config.ini']' returned non-zero exit status 1.
+
+C:\Users\votu\AppData\Local\Programs\Python\Python312\Lib\subprocess.py:571: CalledProcessError
+_______________________________________________________________________________________ test_integration_generates_expected_workbook[countries] _______________________________________________________________________________________ 
+
+tmp_path = WindowsPath('C:/Users/votu/AppData/Local/Temp/pytest-of-votu/pytest-73/test_integration_generates_exp1'), path_filter = '/v1/packages/availability/countries', expected_filename = 'ngs_asc_countries.xlsx'
+
+    @pytest.mark.parametrize(
+        ("path_filter", "expected_filename"),
+        [
+            pytest.param(
+                "/v1/packages/availability/departures",
+                "ngs_asc_airports.xlsx",
+                id="departures",
+            ),
+            pytest.param(
+                "/v1/packages/availability/countries",
+                "ngs_asc_countries.xlsx",
+                id="countries",
+            ),
+        ],
+    )
+    def test_integration_generates_expected_workbook(tmp_path: Path, path_filter: str, expected_filename: str) -> None:
+        """Ensure the CLI output matches the expected workbook for each endpoint."""
+
+        output_base = tmp_path / Path(path_filter).name
+        config_path = _write_config(tmp_path, path_filter, output_base)
+
+>       result = _run_cli(config_path)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration_test.py:102:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests\integration_test.py:48: in _run_cli
+    return subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['C:\\Users\\votu\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-m', 'api_description_tool.cli', 'C:\\U...ig', 'C:\\Users\\votu\\AppData\\Local\\Temp\\pytest-of-votu\\pytest-73\\test_integration_generates_exp1\\config.ini'],)
+kwargs = {'cwd': WindowsPath('C:/Users/votu/Documents/Ciklum/2025/Develop API specification/api_desc_tool'), 'stderr': -1, 'stdout': -1, 'text': True}
+process = <Popen: returncode: 1 args: ['C:\\Users\\votu\\AppData\\Local\\Programs\\Pyt...>
+stdout = "Input file: C:\\Users\\votu\\Documents\\Ciklum\\2025\\Develop API specification\\api_desc_tool\\tests\\data\\NGS_ASC-...able rows: 15\n[Error] 'charmap' codec can't encode character '\\u2705' in position 0: character maps to <undefined>\n"
+stderr = '', retcode = 1
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+
+        If timeout is given, and the process takes too long, a TimeoutExpired
+        exception will be raised.
+
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['C:\\Users\\votu\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-m', 'api_description_tool.cli', 'C:\\Users\\votu\\Documents\\Ciklum\\2025\\Develop API specification\\api_desc_tool\\tests\\data\\NGS_ASC-an.yaml', '--config', 'C:\\Users\\votu\\AppData\\Local\\Temp\\pytest-of-votu\\pytest-73\\test_integration_generates_exp1\\config.ini']' returned non-zero exit status 1.
+
+C:\Users\votu\AppData\Local\Programs\Python\Python312\Lib\subprocess.py:571: CalledProcessError
+========================================================================================================== warnings summary =========================================================================================================== 
+tests/test_parser.py::test_validate_openapi_valid
+tests/test_parser.py::test_validate_openapi_invalid
+  C:\Users\votu\AppData\Local\Programs\Python\Python312\Lib\site-packages\openapi_spec_validator\shortcuts.py:66: DeprecationWarning: validate_spec shortcut is deprecated. Use validate instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================================================================================================= short test summary info ======================================================================================================= 
+FAILED tests/integration_test.py::test_integration_generates_expected_workbook[departures] - subprocess.CalledProcessError: Command '['C:\\Users\\votu\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-m', 'api_description_tool.cli', 'C:\\Users\\votu\\Documents\\Ciklum\\2025\\Develop API specification\\api_de...
+FAILED tests/integration_test.py::test_integration_generates_expected_workbook[countries] - subprocess.CalledProcessError: Command '['C:\\Users\\votu\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', '-m', 'api_description_tool.cli', 'C:\\Users\\votu\\Documents\\Ciklum\\2025\\Develop API specification\\api_de...
