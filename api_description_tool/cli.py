@@ -1,6 +1,7 @@
 # api_description_tool/cli.py
 from pathlib import Path
 import argparse
+import locale
 import sys
 
 from api_description_tool.config import load_config
@@ -81,6 +82,23 @@ def _ensure_min_rows(rows, kind):
         return [{}]
 
 
+def _success_prefix() -> str:
+    """Return a success prefix that is safe for the active stdout encoding."""
+
+    check_mark = "✅"
+    encoding = getattr(sys.stdout, "encoding", None) or locale.getpreferredencoding(False)
+
+    try:
+        check_mark.encode(encoding or "utf-8")
+    except UnicodeEncodeError:
+        return "[OK] "
+    else:
+        return "✅ "
+
+
+SUCCESS_PREFIX = _success_prefix()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="API Description Tool - Convert OpenAPI 3.x YAML to tables"
@@ -153,10 +171,10 @@ def main():
         if fmt in {"xlsx", "excel"}:
             out_path = base_name + ".xlsx"
             write_excel(out_path, params, req_body, res)
-            print(f"✅ Wrote Excel file: {out_path}")
+            print(f"{SUCCESS_PREFIX}Wrote Excel file: {out_path}")
         elif fmt == "csv":
             write_csv(base_name, params, req_body, res)
-            print(f"✅ Wrote CSV files with base: {base_name}")
+            print(f"{SUCCESS_PREFIX}Wrote CSV files with base: {base_name}")
         else:
             raise ValueError(f"Unsupported output format: {fmt}")
 
