@@ -1,20 +1,28 @@
 # API Description Tool
 
-Convert **OpenAPI 3.x YAML** into clean, human-readable **Params / Request Body / Response Body** tables in **CSV** or **Excel**. Designed so both technical and non-technical folks can read your API specs quickly — and so you can keep them updated fast after each epic.
+Convert **OpenAPI 3.x YAML** files into concise, stakeholder-friendly tables covering **Parameters**, **Request Body**, and **Response Body** — exportable as **Excel** or **CSV**. The tool targets analysts, developers, and QA engineers who need a single, always-current source of truth for API surface areas.
 
-## Highlights
+## Overview
 
-* ✅ **OpenAPI 3.x** YAML → tables
-* ✅ Safe **\$ref** resolution with cycle guards
-* ✅ Smart **constraints extraction** (type, enum, min/max, minLen/maxLen, pattern, array limits…)
-* ✅ **Excel formatting**: mandatory fields are bold (**Params → Name; Req/Res → Path & Property**)
-* ✅ **Filename autoderived** from input (e.g., `my_api.yaml` → `my_api_api_tab_desc.xlsx`)
-* ✅ **Tests**: unit + CLI + Excel/CSV writer + two **integration** tests for real specs
-* ✅ **CI**: GitHub Actions workflow (`.github/workflows/tests.yml`) runs pytest on push/PR
+* ✅ **OpenAPI 3.x** → tabular summaries ready for CSV/Excel distribution
+* ✅ Safe **local `$ref`** resolution with cycle detection and pragmatic combinator handling (`allOf`, `oneOf`, `anyOf`)
+* ✅ Rich **constraint extraction** into a compact `Expected Value(s)` string (types, enums, numeric/string/array limits)
+* ✅ Built-in **formatting cues** for mandatory fields (bold cells in Excel output)
+* ✅ Tested across unit, writer, CLI, and integration layers with CI coverage
 
----
+Python **3.10 – 3.12** is supported (see [`.github/workflows/tests.yml`](.github/workflows/tests.yml)).
 
-## Quick Start
+## Documentation
+
+Detailed product requirements and design intent live in the `docs/` directory:
+
+* [`docs/API Description Tool SRS 2 (Updated).md`](docs/API%20Description%20Tool%20SRS%202%20(Updated).md) — software requirements specification (scope, functional rules, non-functional targets).
+* [`docs/API Description Tool – Solution Design (Updated).md`](docs/API%20Description%20Tool%20%E2%80%93%20Solution%20Design%20(Updated).md) — component architecture, algorithms, and testing strategy.
+* [`docs/CR#1 filtering_190925_8.md`](docs/CR%231%20filtering_190925_8.md) — change-request history.
+
+Referencing these specs ensures feature work stays aligned with the agreed decisions (for example, request/response array asymmetry, validation behaviour, enum handling, and filename precedence).
+
+## Installation
 
 ```bash
 # clone & enter
@@ -25,116 +33,122 @@ cd api-description-tool
 python -m venv .venv
 source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
 
-# install
+# install dependencies for development & CLI use
 python -m pip install -U pip
 python -m pip install -r requirements-dev.txt
 python -m pip install -e .
 ```
 
-Create a minimal `config.ini` (optional):
+## Configuration
+
+The CLI reads INI files that follow the schema implemented in `api_description_tool/config.py`. A minimal `config.ini` might look like:
 
 ```ini
 [input]
-validate=True
+validate = True       ; Toggle `openapi-spec-validator`
 
 [output]
-format=xlsx
-# file_name=api_tab_desc  # leave default; see filename rule below
+format = xlsx         ; csv | xlsx
+file_name = api_tab_desc
 ```
 
-Run:
+When `file_name` remains at the default value, the tool derives the final base name from the input YAML stem.
+
+An example configuration is available at [`config_example.ini`](config_example.ini).
+
+## Usage
 
 ```bash
-# Excel (default base name derives from input filename)
-python -m api_description_tool.cli path/to/openapi.yaml --config config.ini
-
-# CSV (three files: _params.csv, _req_body.csv, _res_body.csv)
-python -m api_description_tool.cli path/to/openapi.yaml outbase --config config.ini
-```
-
----
-
-## CLI
-
-```
 python -m api_description_tool.cli <input_file> [output_file] [--config CONFIG]
 ```
 
-* `input_file` — path to your OpenAPI YAML.
-* `output_file` (optional) — **base name** to write (without extension for CSV; `.xlsx` added for Excel).
-* `--config` — path to `config.ini` (default: `config.ini` in CWD).
+* `input_file` — path to an OpenAPI 3.x YAML document.
+* `output_file` (optional) — base name for generated artifacts. For Excel, `.xlsx` is appended; for CSV, three suffixed files are produced.
+* `--config` — path to an INI file (default: `config.ini` in the current working directory).
 
-### Config options
+### Filename precedence
 
-```ini
-[input]
-validate=True        ; True/False — use openapi-spec-validator
+1. Positional `output_file` argument (if provided)
+2. `config.output.file_name` when it differs from the default `api_tab_desc`
+3. `<input_stem>_api_tab_desc` derived from the input filename
 
-[output]
-format=csv           ; csv|xlsx
-file_name=api_tab_desc
+### Examples
+
+```bash
+# Excel with auto-derived name (e.g. my_api_api_tab_desc.xlsx)
+python -m api_description_tool.cli specs/my_api.yaml --config config.ini
+
+# Explicit base name written to CSV trio (outbase_params.csv, ...)
+python -m api_description_tool.cli specs/my_api.yaml outbase --config config.ini
 ```
 
-### Output filename rule (precedence)
+## Output format
 
-1. **Positional** `output_file` argument (if provided)
-2. `config.output.file_name` **when it’s not** `api_tab_desc`
-3. Otherwise: **derived** from input filename → `<input_stem>_api_tab_desc`
+### CSV artefacts
 
-Examples:
+* `<base>_params.csv` — `Name | Mandatory | Expected Value(s) | In | Description | Examples`
+* `<base>_req_body.csv` — `Path | Property | Mandatory | Expected Value(s) | Description | Examples`
+* `<base>_res_body.csv` — `Status | Path | Property | Mandatory | Expected Value(s) | Description | Examples`
 
-* `python -m ... my_api.yaml` → `my_api_api_tab_desc.xlsx`
-* `python -m ... my_api.yaml outbase` → `outbase.xlsx`
-* `file_name=final_tables` → `final_tables.xlsx`
+### Excel workbook
 
----
+Single workbook with three sheets: **Params**, **Req Body**, **Res Body** (same columns as CSV). Mandatory rows receive bold emphasis on the relevant headers:
 
-## What the tool produces
+* Params: **Name**
+* Req/Res: **Path** and **Property**
 
-### CSV
+The writers always emit header rows, even when a section has zero data rows.
 
-* `<base>_params.csv` with columns:
-  `Name | Mandatory | Expected Value(s) | In | Description | Examples`
-* `<base>_req_body.csv` with columns:
-  `Path | Property | Mandatory | Expected Value(s) | Description | Examples`
-* `<base>_res_body.csv` with columns:
-  `Status | Path | Property | Mandatory | Expected Value(s) | Description | Examples`
+## Constraint extraction
 
-### Excel
-
-Workbook with three sheets: **Params**, **Req Body**, **Res Body** (same columns as above).
-
-**Formatting:**
-
-* If `Mandatory=True`:
-
-  * **Params**: **Name** is bold
-  * **Req Body / Res Body**: **Path** and **Property** are bold
-
----
-
-## Constraints extraction
-
-`Expected Value(s)` is a compact string, e.g.:
+The tables compress schema details into the `Expected Value(s)` column. Examples include:
 
 * `string minLen=2 maxLen=5 pattern=^[A-Z]+$`
 * `integer min=1 max=10`
 * `array<string> minItems=1`
 * `string enum=a,b,c`
 
----
+Underlying extraction is handled in `api_description_tool/flattener.py` and respects the union/merge behaviour described in the SRS.
 
-## Behavior & limits
+## Behaviour notes & limits
 
-* `$ref` resolution: **local** refs (e.g., `#/components/schemas/X`) with cycle detection.
-* `allOf/oneOf/anyOf`: minimal, practical merge (properties + required) to keep tables useful.
-* Arrays:
+* Only **local** `$ref` targets (e.g. `#/components/schemas/...`) are resolved; cycles are detected and short-circuited.
+* `allOf` merges properties and `required` entries; `oneOf/anyOf` expose the union of visible properties with a note indicating combinator use.
+* Array traversal is asymmetric by design: request tables omit primitive item rows; response tables include them (e.g. `/kinds[0]`).
+* Optional OpenAPI validation (using `openapi-spec-validator`) aborts execution on failure.
 
-  * Request: no separate row for primitive array items (keeps tables compact)
-  * Response: **does** emit a row for primitive array items (e.g., `/kinds[0]`)
-* Empty specs or sections still produce files with headers.
+## How it works
 
----
+```
+OpenAPI YAML
+     │
+     ▼
+  parser.py  ──► flattener.py ──► tables.py ──► writer_excel.py / writer_csv.py
+     ▲               │                    ▲                ▲
+     │               └─ constraints      │                │
+  cli.py ─ config.py ── validation ──────┘                │
+     │                                                   tests/
+```
+
+Each module has focused responsibilities:
+
+* `cli.py` — orchestrates argument parsing, config loading, validation, and invocation of downstream builders.
+* `config.py` — typed loading of INI settings with sensible defaults.
+* `parser.py` — consumes OpenAPI YAML and prepares structures for table generation.
+* `flattener.py` — resolves `$ref`, merges combinators, and assembles constraint strings.
+* `tables.py` — constructs the Params / Req Body / Res Body rows, including the array asymmetry rule.
+* `writer_csv.py` & `writer_excel.py` — persist tabular data with consistent formatting and mandatory emphasis.
+* `tests/` — pytest suite covering units, writers, CLI behaviour, and integration specs.
+
+## Testing
+
+Run the full suite with:
+
+```bash
+python -m pytest
+```
+
+Integration fixtures under `tests/data/` ensure the CLI and table generation remain stable against real-world specifications.
 
 ## Project layout
 
@@ -158,61 +172,6 @@ tests/
   test_integration_specs.py
   data/
     alt-trans-an.yml
-    psc_an.yml
-.github/
-  workflows/
-    tests.yml
 ```
 
----
-
-## Tests
-
-```bash
-# run everything
-pytest -q
-
-# only integration tests (with your real YAMLs under tests/data)
-pytest -q -k "integration"
-```
-
-* Tested on Python **3.10 / 3.11 / 3.12** (GitHub Actions matrix).
-* Windows PowerShell note: it doesn’t support `&&` on older PS versions. Use separate lines or `;`.
-
----
-
-## CI
-
-GitHub Actions workflow **`tests.yml`** runs the suite on every push/PR.
-Matrix: Python 3.10–3.12.
-
----
-
-## Troubleshooting
-
-* **PowerShell error** “`The token '&&' is not a valid statement separator`”
-  Run commands separately or use `;` (or upgrade to PowerShell 7+).
-* **Validation errors**: set `[input] validate=False` to skip schema validation and still generate tables (useful for WIP specs).
-* **No output files**: the tool inserts a minimal row to ensure writers create files even when a section has no rows.
-
----
-
-## Contributing
-
-PRs welcome! Please:
-
-* Add/update tests for changes.
-* Keep `flattener.py` as the place for recursion/constraints logic.
-* Run `pytest -q` locally before opening a PR.
-
----
-
-## License
-
-MIT
-
----
-
-## Credits
-
-Built by a BA+Python workflow to accelerate API documentation after each epic.
+For further context, consult the SRS and solution design documents in `docs/` while making enhancements or reviewing change requests.
