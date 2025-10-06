@@ -1,5 +1,5 @@
 
-# API Description Tool — Solution Design (Updated 2025-09-17)
+# API Description Tool — Solution Design (Re-aligned 2025-09-17)
 
 ## 1. Architecture Overview
 ```
@@ -14,9 +14,9 @@ OpenAPI YAML
 ```
 - **cli.py** — argument parsing, config loading, validation toggle, orchestration.
 - **config.py** — reads INI (`[input]`, `[output]`).
-- **parser.py** — loads YAML, path/operation enumeration, request/response media selection.
-- **flattener.py** — resolves `$ref`, merges `allOf`, **unions** `oneOf/anyOf` properties with a note, extracts constraints.
-- **tables.py** — builds rows for Params / Req Body / Res Body and applies “Mandatory” logic; implements **array asymmetry** (no primitive item row in request, do emit for response).
+- **parser.py** — loads YAML and (optionally) validates it; higher-level traversal happens in `tables.py`.
+- **flattener.py** — resolves `$ref`, merges `allOf`, folds `oneOf/anyOf` branches into a single object, extracts constraints.
+- **tables.py** — builds rows for Params / Req Body / Res Body and applies “Mandatory” logic; implements **array asymmetry** (no primitive item row in request, do emit for response) and emits container rows for objects/arrays.
 - **writer_csv.py / writer_excel.py** — persistence & formatting (bold for mandatory cells per SRS).
 - **tests/** — unit, writer, CLI, integration.
 
@@ -36,13 +36,13 @@ Tables    = {"params":[ParamRow], "req_body":[BodyRow], "res_body":[BodyRow]}
 - Only **local** refs `#/components/...` are supported.
 
 ### 3.2 Combinators
-- **allOf**: deep‑merge `properties`, union `required`, scalars last‑writer‑wins.
-- **oneOf/anyOf**: **union** visible properties and attach note “oneOf/anyOf” (no path explosion).
+- **allOf**: shallow merge `properties`, union `required`, scalars last‑writer‑wins.
+- **oneOf/anyOf**: union visible properties into a single synthetic object (no additional note is appended to rows).
 
 ### 3.3 Constraint Extraction
 - Map schema keywords to the compact string in SRS FR5.
-- Derive types from `type` or `$ref`.
-- Arrays: include `items=<type|$ref-name> minItems=<n> maxItems=<m>`.
+- Derive types from `type` or simple `$ref` targets.
+- Arrays: emit `array<inner>` with optional `minItems`, `maxItems`, and `unique` flags; `inner` prefers `type` or inline enum summary.
 - Objects: mention `additionalProperties` rules.
 - Enums are **not truncated**.
 
@@ -52,10 +52,10 @@ Tables    = {"params":[ParamRow], "req_body":[BodyRow], "res_body":[BodyRow]}
 - **Response**: emit primitive array item row.
 
 ### 3.5 Parameters Table
-- Iterate `paths/*/*/parameters` plus inherited `pathItem.parameters` (OpenAPI merge rules).
-- `mandatory = True` for `required=True` or for any path param.
-- `expected` from param `schema` constraints and `enum`.
-- Examples: property-level only.
+- Iterate each operation’s `parameters` list (path-level inheritance is not materialised at this stage).
+- `Mandatory` mirrors the parameter’s `required` flag; no implicit enforcement for path parameters beyond what the spec declares.
+- `Expected Value(s)` is derived from the parameter’s schema.
+- Examples use the parameter-level `example` field when present.
 
 ## 4. Output Writers
 ### CSV
@@ -67,6 +67,7 @@ Tables    = {"params":[ParamRow], "req_body":[BodyRow], "res_body":[BodyRow]}
 - Bold styles when `mandatory=True`:
   - Params: **Name**
   - Req/Res: **Path** and **Property**
+- CLI injects a blank row with the correct headers when a table would otherwise be empty so the writers always output at least a header row.
 
 ## 5. Config & Precedence
 Order: CLI positional `output_file` → `config.output.file_name` (if not default) → `<input_stem>_api_tab_desc`.
@@ -76,8 +77,8 @@ Order: CLI positional `output_file` → `config.output.file_name` (if not defaul
 
 ## 7. Error Handling
 - YAML load errors → friendly message.
-- Missing content or non‑JSON → skip with warning but continue with other sections.
-- Unknown keywords → ignored or added as notes when feasible.
+- Missing content or non‑JSON → silently skipped; processing continues for other sections.
+- Unknown keywords → ignored.
 
 ## 8. Testing Strategy
 - **Unit**: `flattener`, `tables` (required, combinators, arrays).
@@ -90,7 +91,7 @@ Order: CLI positional `output_file` → `config.output.file_name` (if not defaul
 - No network I/O; single-file YAML only.
 
 ## 10. Extensibility
-- Example payload synthesis (`examples.py`), HTML export (`writer_html.py`), diff engine (`diff.py`).
+- Potential backlog items (not yet implemented modules): example payload synthesis, HTML export, diff engine.
 - Resolver for external refs (deferred until requested).
 - i18n for column captions (deferred).
 
@@ -103,7 +104,7 @@ Order: CLI positional `output_file` → `config.output.file_name` (if not defaul
 - Optional linting (ruff/flake8) future addition.
 
 ## 13. Decisions Confirmed (2025-09-17)
-- **oneOf/anyOf**: union with note.
+- **oneOf/anyOf**: union of properties without additional labelling.
 - **Examples**: property-level only; no media-type examples.
 - **Validation**: abort on failure; no `--force`.
 - **External $ref**: not needed.
@@ -113,4 +114,5 @@ Order: CLI positional `output_file` → `config.output.file_name` (if not defaul
 - **Enums**: full list, no truncation.
 
 ## 14. Change Log
+- 2025-09-17 (rev B): Reconciled module responsibilities, combinator handling, constraint strings, and empty-table behaviour with the current implementation.
 - 2025-09-17: Incorporated user decisions; clarified examples handling, validation behavior, enums, and array asymmetry.

@@ -1,4 +1,4 @@
-# Change Request (CR-001): Endpoint Filtering for OpenAPI inputs
+# Change Request (CR-001): Endpoint Filtering for OpenAPI inputs (Re-aligned)
 
 ## 1) Background & Goals
 
@@ -29,14 +29,14 @@ You use the tool to turn OpenAPI 3.x YAML into spec tables that both tech and no
 ## 3) Functional Requirements
 
 - FR-001: Read filter rules from `[filtering]` in `config.ini` (optional).
-  
+
   Supported keys:
-  
+
   `path` ; exact required path (including braces and trailing slashes) e.g., `/v1/packages/availability/departures`; optional;
-  
+
   `method: GET,POST,…`; optional; `method` comparison is **case-insensitive** (e.g. `get`, `GET`) against OpenAPI operation keys;
-  
-  For specs with multiple paths/methods, both `path` **and** `method` must be specified.
+
+  When the selected path exposes a single HTTP method, `method` may be omitted and will be inferred automatically; otherwise, `method` must be provided.
 
 - FR-002: If `[filtering]` is missing/empty **and** the spec has **exactly one path with exactly one method**, proceed without filtering (full backward compatibility). Otherwise, raise the FR-003 error.
 
@@ -54,7 +54,7 @@ You use the tool to turn OpenAPI 3.x YAML into spec tables that both tech and no
 
 - FR-009: keep current `[input] validate=True/False` behavior as-is; filtering runs **before** parsing/tables but **after** YAML load.
 
-- FR-010: If the spec has **one path with one method** and `[filtering]` is present but only `path` is provided (matching that path), proceed with filtering without explicitly specified method; applies only when the spec itself has exactly one path and one method (a trivial spec)
+- FR-010: If `[filtering]` provides only `path`, infer the method automatically when that path defines exactly one HTTP method; otherwise require the user to specify `method`.
 
 ---
 
@@ -68,7 +68,7 @@ You use the tool to turn OpenAPI 3.x YAML into spec tables that both tech and no
   method=GET
   ```
 
-- **CLI** (no flags required): existing `-config` is enough. The tool auto-applies filters when present (keeping your current CLI signature per README). [GitHub](https://github.com/vturovets/api-description-tool)
+- **CLI** (no flags required): existing `--config` is enough. The tool auto-applies filters when present (keeping your current CLI signature per README). [GitHub](https://github.com/vturovets/api-description-tool)
 
 ---
 
@@ -92,19 +92,16 @@ This uses the existing project layout and preserves all downstream logic and out
 
 ## 7) Testing
 
-- **Unit tests**: `tests/test_filter.py` (new)
-  - Path is presented
-  - Path is missing, Method is presented
-  - Path is not specified correctly
-  - Method is not specified correctly
-  - **FR-002 happy-path**: a spec with exactly one path & one method and **no** `[filtering]` → ensure pipeline runs with no filtering
-  - Path-only + multi-method
-  - trivial spec + `[filtering]` present with only `path` → succeeds and selects the sole method.
-- **Integration test**: `tests/test_integration_filter_multi_paths.py`
-  - Use the attached `multi_paths.yml` (place at `tests/data/multi_paths.yml`).
-  - Run pipeline with a temp `config.ini` containing `[filtering]` rules.
-  - Assert that only selected endpoints drive table generation (e.g., presence/absence of rows/paths in produced CSV/XLSX or, if simpler, assert against the filtered `path` dictionary prior to table build—see notes in the test code).
-  - Assert that the error message is generated when `[filtering]` missing or empty.
+- **Unit tests**: `tests/tests_filter.py`
+  - Path is present and method inferred
+  - Missing rules on multi-endpoint spec errors
+  - Method without path errors
+  - Unknown path/method errors
+  - Path-only succeeds when path has a single method
+- **Integration test**: `tests/integration_test.py`
+  - Uses `tests/data/NGS_ASC-an.yaml` as the source spec.
+  - Writes temporary configs with `[filtering] path=…` (method inferred when possible).
+  - Runs the CLI and compares generated Excel workbooks against curated fixtures (`tests/data/ngs_asc_*.xlsx`).
 
 ---
 
