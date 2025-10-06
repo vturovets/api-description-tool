@@ -1,4 +1,4 @@
-# API Description Tool — SRS v2 (Updated 2025-09-17)
+# API Description Tool — SRS v2 (Re-aligned 2025-09-17)
 
 ## 1. Purpose & Context
 
@@ -10,8 +10,8 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 
 - Parse a single OpenAPI 3.x YAML file.
 - Resolve local `$ref` references with cycle detection.
-- Flatten composed schemas (`allOf`, `oneOf`, `anyOf`) with a pragmatic merge to expose properties and `required` flags.
-- Extract constraints into a compact **Expected Value(s)** string (type, enum, min/max, minLength/maxLength, pattern, array limits, item type).
+- Flatten composed schemas (`allOf`, `oneOf`, `anyOf`) with a pragmatic merge to expose properties and `required` flags (no additional labelling for combinators).
+- Extract constraints into a compact **Expected Value(s)** string (type, enum, min/max, minLength/maxLength, pattern, array limits, item descriptor).
 - Generate **Excel** (single workbook, three sheets) or **CSV** (three files) with consistent column sets.
 - Apply visual emphasis (bold) for mandatory fields.
 - Filename auto-derivation from input stem unless overridden by CLI posarg or config.
@@ -45,6 +45,7 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 - `[input] validate=True|False` — run `openapi-spec-validator`.
 - `[output] format=csv|xlsx`
 - `[output] file_name=<base>` — when not equal to default (`api_tab_desc`), overrides base name.
+- `[filtering] path=<exact OpenAPI path>` optionally narrows processing to a single endpoint; `method=<VERB>` is optional when the chosen path exposes a single HTTP method and otherwise required. Omitting `[filtering]` on specs with multiple endpoints raises an error before table generation.
 - CSV delimiter is fixed to `,` (no localization at this time).
 
 ### FR3. Tables
@@ -57,13 +58,14 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 
 **Population rules**
 
-- **Parameters**: enumerate across paths+operations (`in` in `{{query,header,path,cookie}}`); required → `Mandatory=True`.
-- **Request Body**: traverse JSON schema; `Mandatory=True` when property in `required` or array `minItems>0` for item presence.
+- **Parameters**: enumerate each operation’s declared parameters (`in` in `{query,header,path,cookie}`); `Mandatory=True` mirrors the parameter’s `required` flag exactly.
+- **Request Body**: traverse JSON schema; `Mandatory=True` when property in `required` or array `minItems>0` for item presence. Container rows for objects/arrays are emitted alongside nested properties.
 - **Response Body**: same as request; include **Status** from responses. For primitive arrays, emit a row for the item (e.g., `/items[0]`).
 
 **Formatting**
 
 - Excel: if `Mandatory=True` → **bold**: Params: **Name**, Req/Res: **Path** and **Property**.
+- When a section would otherwise be empty, the CLI injects a blank row to guarantee headers are written by both writers.
 
 ### FR4. Output filename rule (precedence)
 
@@ -76,10 +78,10 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 - Base: `type` (string, integer, number, boolean, object, array).
 - String: `minLen`, `maxLen`, `pattern`, `enum`.
 - Number/Integer: `min`, `max`, `exclusiveMin`, `exclusiveMax`, `multipleOf`.
-- Array: `items=<type or $ref name>`, `minItems`, `maxItems`, `uniqueItems`.
-- Object: `additionalProperties` (boolean or schema name).
+- Array: `array<inner>` with optional `minItems`, `maxItems`, `unique`; `inner` is taken from the item `type` or inline enum.
+- Object: `additionalProperties` (boolean or schema name when resolvable).
 - Present `enum` as comma-separated list **without truncation**.
-- Merge across `allOf` (union of `properties`, union of `required`; last-write-wins for scalar constraints). `oneOf/anyOf`: **union of properties** with a note “oneOf/anyOf” (no combinatorial expansion).
+- Merge across `allOf` (union of `properties`, union of `required`; last-write-wins for scalar constraints). `oneOf/anyOf`: union of properties into a single view (no explicit annotation in the output rows).
 
 ### FR6. Validation
 
@@ -87,11 +89,11 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 
 ### FR7. Examples
 
-- Prefer **property-level** `example`/`examples` where present. No media-type examples are considered.
+- Prefer **property-level** `example`/`examples` where present (lists and dict forms supported). No media-type examples are considered.
 
 ### FR8. Empty sections
 
-- Writers create files/sheets with headers even if no rows were discovered.
+- Writers create files/sheets with headers even if no rows were discovered (via CLI-provided stub rows).
 
 ### FR9. CSV & Excel writers
 
@@ -100,7 +102,7 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 
 ### FR10. Logging & UX
 
-- CLI prints: input file, output base, format, validation on/off, row counts per section.
+- CLI prints: input file, output base, format, validation on/off, row counts per section, and success message with a Unicode-safe prefix fallback.
 
 ## 5. Non‑Functional Requirements
 
@@ -114,14 +116,14 @@ This tool converts **OpenAPI 3.x YAML** files into compact, human‑readable tab
 
 - Prefer `application/json` content; fall back to first media type when JSON missing.
 - **Array asymmetry**: request does **not** add a separate primitive item row; response **does**.
-- “Mandatory” derived from `required`, path params implied required by spec.
+- “Mandatory” derived directly from `required`; no additional inference for path parameters beyond what the OpenAPI document states.
 - Examples: property-level only.
 
 ## 7. Error Handling
 
 - Invalid YAML → clear message.
-- Missing media type → skip with warning.
-- Unsupported keywords retained silently in notes where sensible.
+- Missing media type → section skipped without extra logging.
+- Unsupported keywords ignored.
 
 ## 8. Risks
 
