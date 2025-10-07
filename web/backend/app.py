@@ -1,14 +1,17 @@
 """FastAPI application setup for the API Description Tool web backend."""
-
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+from contextlib import suppress
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import FastAPI
 
 from .config import get_settings
+from .janitor import purge_expired
 from .models import HealthResponse
 
 
@@ -85,6 +88,46 @@ configure_logging(JsonFormatter(settings.app_version, settings.git_sha))
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="API Description Tool Backend", version=settings.app_version)
+
+_JANITOR_INTERVAL_SECONDS = 5 * 60
+
+
+async def _janitor_worker(ttl_minutes: int) -> None:
+    """Periodically invoke the janitor cleanup routine."""
+
+    while True:
+        try:
+            purge_expired(ttl_minutes)
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception("Janitor run failed", extra={"event": "JANITOR_ERROR"})
+        await asyncio.sleep(_JANITOR_INTERVAL_SECONDS)
+
+
+@app.on_event("startup")
+async def _start_background_tasks() -> None:
+    """Start background janitor task on application startup."""
+
+    if getattr(app.state, "janitor_task", None):
+        return
+    task = asyncio.create_task(_janitor_worker(settings.ttl_minutes))
+    app.state.janitor_task = task
+    logger.info(
+        "Background janitor started",
+        extra={"event": "JANITOR_START", "interval_seconds": _JANITOR_INTERVAL_SECONDS},
+    )
+
+
+@app.on_event("shutdown")
+async def _stop_background_tasks() -> None:
+    """Cancel background janitor task during shutdown."""
+
+    task: Optional[asyncio.Task] = getattr(app.state, "janitor_task", None)
+    if task is None:
+        return
+    task.cancel()
+    with suppress(asyncio.CancelledError):
+        await task
+    app.state.janitor_task = None
 
 
 @app.get("/health", response_model=HealthResponse)
