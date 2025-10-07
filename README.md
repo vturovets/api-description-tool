@@ -82,6 +82,17 @@ python -m api_description_tool.cli specs/my_api.yaml --config config.ini
 python -m api_description_tool.cli specs/my_api.yaml outbase --config config.ini
 ```
 
+## Web backend (MVP)
+
+The FastAPI backend introduced in CR-002 can be run locally with Uvicorn:
+
+```bash
+uvicorn web.backend.app:app --host 0.0.0.0 --port 8000
+```
+
+Visit `http://localhost:8000/health` to confirm the service responds with the current
+version and git SHA.
+
 ## Output format
 
 ### CSV artefacts
