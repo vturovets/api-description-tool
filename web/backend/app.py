@@ -4,7 +4,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import shutil
+import time
 import uuid
+import zipfile
 from contextlib import suppress
 from datetime import datetime, timezone
 from pathlib import Path
@@ -12,12 +15,32 @@ from typing import Dict, List, Optional
 
 import yaml
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import FileResponse
+
+from api_description_tool.filter import FilteringError, apply_filters
+from api_description_tool.parser import load_yaml, validate_openapi
+from api_description_tool.tables import (
+    build_request_body_table,
+    build_request_params_table,
+    build_response_body_table,
+)
+from api_description_tool.writer_csv import write_csv
+from api_description_tool.writer_excel import write_excel
 
 from .config import get_settings
 from .errors import http_error
 from .janitor import purge_expired
-from .models import HealthResponse, UploadResponse
-from .services.storage import ensure_upload_dir
+from .models import (
+    ConvertRequest,
+    ConvertResponse,
+    HealthResponse,
+    JobMetrics,
+    JobRows,
+    JobStatusResponse,
+    UploadResponse,
+)
+from .services.jobs import job_registry
+from .services.storage import ensure_root, ensure_upload_dir, safe_component_name
 
 
 class JsonFormatter(logging.Formatter):
@@ -104,6 +127,151 @@ _ALLOWED_CONTENT_TYPES = {
     "application/octet-stream",
 }
 _HTTP_METHODS = ("get", "put", "post", "delete", "patch", "options", "head", "trace")
+_ALLOWED_FORMATS = {"xlsx", "csv"}
+
+
+class ValidationFailure(Exception):
+    """Raised when OpenAPI validation fails."""
+
+
+def _ensure_min_rows(rows: List[Dict[str, object]], kind: str) -> List[Dict[str, object]]:
+    """Ensure writers always have at least headers to emit."""
+
+    if rows:
+        return rows
+
+    if kind == "params":
+        return [
+            {
+                "Name": "",
+                "Mandatory": "",
+                "Expected Value(s)": "",
+                "In": "",
+                "Description": "",
+                "Examples": "",
+            }
+        ]
+    if kind == "req":
+        return [
+            {
+                "Path": "",
+                "Property": "",
+                "Mandatory": "",
+                "Expected Value(s)": "",
+                "Description": "",
+                "Examples": "",
+            }
+        ]
+    if kind == "res":
+        return [
+            {
+                "Status": "",
+                "Path": "",
+                "Property": "",
+                "Mandatory": "",
+                "Expected Value(s)": "",
+                "Description": "",
+                "Examples": "",
+            }
+        ]
+    return [{}]
+
+
+def _load_upload_metadata(upload_dir: Path) -> Dict[str, str]:
+    metadata_path = upload_dir / "metadata.json"
+    if not metadata_path.exists():
+        return {}
+    try:
+        return json.loads(metadata_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _write_upload_metadata(upload_dir: Path, payload: Dict[str, str]) -> None:
+    metadata_path = upload_dir / "metadata.json"
+    metadata_path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _resolve_output_base(upload_dir: Path, original_filename: str) -> Path:
+    base_name = "api_tab_desc"
+    if original_filename:
+        stem = Path(original_filename).stem
+        if stem:
+            base_name = f"{stem}_api_tab_desc"
+    safe_base = safe_component_name(base_name, fallback="api_tab_desc")
+    return upload_dir / safe_base
+
+
+def _zip_csv_outputs(base_path: Path) -> Path:
+    zip_path = base_path.with_suffix(".zip")
+    csv_paths = [
+        base_path.with_name(f"{base_path.name}_params.csv"),
+        base_path.with_name(f"{base_path.name}_req_body.csv"),
+        base_path.with_name(f"{base_path.name}_res_body.csv"),
+    ]
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for csv_path in csv_paths:
+            zip_file.write(csv_path, arcname=csv_path.name)
+    return zip_path
+
+
+def _run_conversion(
+    *,
+    upload_dir: Path,
+    original_filename: str,
+    path: str,
+    method: Optional[str],
+    fmt: str,
+    validate: bool,
+    job_id: str,
+) -> Dict[str, object]:
+    job_registry.add_log(job_id, "info", "Loading OpenAPI spec")
+    spec_path = upload_dir / "spec.yaml"
+    spec = load_yaml(str(spec_path))
+
+    if validate:
+        job_registry.add_log(job_id, "info", "Validating OpenAPI spec")
+        try:
+            validate_openapi(spec)
+        except ValueError as exc:
+            raise ValidationFailure(str(exc)) from exc
+
+    rules: Dict[str, Optional[str]] = {"path": path}
+    if method:
+        rules["method"] = method.upper()
+    job_registry.add_log(job_id, "info", "Applying endpoint filter")
+    spec = apply_filters(spec, rules)
+
+    job_registry.add_log(job_id, "info", "Building tables")
+    params = build_request_params_table(spec)
+    req_body = build_request_body_table(spec)
+    res_body = build_response_body_table(spec)
+
+    params = _ensure_min_rows(params, "params")
+    req_body = _ensure_min_rows(req_body, "req")
+    res = _ensure_min_rows(res_body, "res")
+    if res_body and all("Status" in row for row in res_body):
+        res = res_body
+
+    base_path = _resolve_output_base(upload_dir, original_filename)
+    if fmt == "xlsx":
+        output_path = base_path.with_suffix(".xlsx")
+        write_excel(str(output_path), params, req_body, res)
+    else:
+        write_csv(str(base_path), params, req_body, res)
+        output_path = _zip_csv_outputs(base_path)
+
+    row_counts = JobRows(
+        params=len(params),
+        request_body=len(req_body),
+        response_body=len(res),
+    )
+
+    return {
+        "rows": row_counts,
+        "output_path": output_path,
+        "output_filename": output_path.name,
+    }
 
 
 def _normalise_content_type(value: Optional[str]) -> str:
@@ -237,6 +405,10 @@ async def upload_spec(file: UploadFile = File(...)) -> UploadResponse:
     file_path.write_bytes(raw_bytes)
 
     reported_filename = filename or "spec.yaml"
+    _write_upload_metadata(
+        upload_dir,
+        {"upload_id": upload_id, "file_name": reported_filename, "created_at": datetime.now(timezone.utc).isoformat()},
+    )
     logger.info(
         "Spec uploaded",
         extra={
@@ -253,6 +425,146 @@ async def upload_spec(file: UploadFile = File(...)) -> UploadResponse:
         size=size,
         paths=paths,
     )
+
+
+@app.post("/api/convert", response_model=ConvertResponse)
+async def convert_spec(payload: ConvertRequest) -> ConvertResponse:
+    """Run conversion for a previously uploaded spec."""
+
+    fmt = (payload.format or "").strip().lower()
+    if fmt not in _ALLOWED_FORMATS:
+        raise http_error(422, "INVALID_FORMAT", f"Unsupported format: {payload.format}")
+
+    if job_registry.running_count() >= settings.max_concurrent_jobs:
+        raise http_error(429, "TOO_MANY_JOBS", "Too many conversion jobs are running.")
+
+    upload_root = ensure_root()
+    upload_dir = upload_root / safe_component_name(payload.upload_id, fallback=payload.upload_id)
+    spec_path = upload_dir / "spec.yaml"
+    if not spec_path.exists():
+        raise http_error(404, "JOB_NOT_FOUND", "Upload not found for the provided upload_id.")
+
+    metadata = _load_upload_metadata(upload_dir)
+    original_filename = metadata.get("file_name", "spec.yaml")
+
+    job = job_registry.create_job(payload.upload_id)
+    job_registry.update_status(job.job_id, "running")
+    job_registry.add_log(job.job_id, "info", "Conversion started")
+
+    start_time = time.monotonic()
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(
+                _run_conversion,
+                upload_dir=upload_dir,
+                original_filename=original_filename,
+                path=payload.path,
+                method=payload.method,
+                fmt=fmt,
+                validate=payload.validate,
+                job_id=job.job_id,
+            ),
+            timeout=settings.job_timeout_seconds,
+        )
+    except asyncio.TimeoutError as exc:
+        job_registry.update_status(job.job_id, "failed")
+        job_registry.add_log(job.job_id, "error", "Conversion timed out")
+        raise http_error(504, "JOB_TIMEOUT", "Conversion timed out.") from exc
+    except FilteringError as exc:
+        job_registry.update_status(job.job_id, "failed")
+        job_registry.add_log(job.job_id, "error", str(exc))
+        raise http_error(422, "PATH_OR_METHOD_NOT_FOUND", str(exc)) from exc
+    except ValidationFailure as exc:
+        job_registry.update_status(job.job_id, "failed")
+        job_registry.add_log(job.job_id, "error", str(exc))
+        raise http_error(422, "OPENAPI_VALIDATION_FAILED", str(exc)) from exc
+    except (yaml.YAMLError, UnicodeDecodeError) as exc:
+        job_registry.update_status(job.job_id, "failed")
+        job_registry.add_log(job.job_id, "error", "YAML syntax error")
+        raise http_error(400, "YAML_SYNTAX_ERROR", "Failed to parse YAML content.", details={"error": str(exc)}) from exc
+    except FileNotFoundError as exc:
+        job_registry.update_status(job.job_id, "failed")
+        job_registry.add_log(job.job_id, "error", "Spec file missing")
+        raise http_error(404, "JOB_NOT_FOUND", "Uploaded spec is missing.") from exc
+    except Exception as exc:
+        job_registry.update_status(job.job_id, "failed")
+        job_registry.add_log(job.job_id, "error", "Unexpected conversion error")
+        raise http_error(500, "INTERNAL_ERROR", "Unexpected conversion error.") from exc
+
+    duration_ms = int((time.monotonic() - start_time) * 1000)
+    metrics = JobMetrics(
+        duration_ms=duration_ms,
+        rows=result["rows"],
+        validate_enabled=payload.validate,
+        format=fmt,
+    )
+    job_registry.set_metrics(job.job_id, metrics)
+    job_registry.set_output(job.job_id, result["output_path"], result["output_filename"])
+    job_registry.update_status(job.job_id, "succeeded")
+    job_registry.add_log(job.job_id, "info", "Conversion completed")
+
+    return ConvertResponse(
+        job_id=job.job_id,
+        status="succeeded",
+        rows=result["rows"],
+        download_url=f"/api/download/{job.job_id}",
+    )
+
+
+@app.get("/api/job/{job_id}", response_model=JobStatusResponse)
+async def job_status(job_id: str) -> JobStatusResponse:
+    """Return current status for a conversion job."""
+
+    job = job_registry.get_job(job_id)
+    if not job:
+        raise http_error(404, "JOB_NOT_FOUND", "Job not found.")
+
+    download_url = f"/api/download/{job.job_id}" if job.output_path else None
+    return JobStatusResponse(
+        job_id=job.job_id,
+        status=job.status,
+        logs=job.logs,
+        metrics=job.metrics,
+        download_url=download_url,
+    )
+
+
+@app.get("/api/download/{job_id}")
+async def download(job_id: str) -> FileResponse:
+    """Download a completed conversion artifact."""
+
+    job = job_registry.get_job(job_id)
+    if not job or not job.output_path:
+        raise http_error(404, "JOB_NOT_FOUND", "Job output not found.")
+    if not job.output_path.exists():
+        raise http_error(404, "JOB_NOT_FOUND", "Job output not found.")
+
+    media_type = "application/octet-stream"
+    if job.output_path.suffix == ".xlsx":
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif job.output_path.suffix == ".zip":
+        media_type = "application/zip"
+
+    return FileResponse(path=str(job.output_path), filename=job.output_filename, media_type=media_type)
+
+
+@app.delete("/api/job/{job_id}")
+async def delete_job(job_id: str) -> Dict[str, str]:
+    """Delete job artifacts and remove job state."""
+
+    job = job_registry.delete_job(job_id)
+    if not job:
+        raise http_error(404, "JOB_NOT_FOUND", "Job not found.")
+
+    if job.output_path and job.output_path.exists():
+        job.output_path.unlink(missing_ok=True)
+
+    upload_root = ensure_root()
+    upload_dir = upload_root / safe_component_name(job.upload_id, fallback=job.upload_id)
+    if upload_dir.exists():
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    return {"status": "deleted"}
 
 
 @app.get("/health", response_model=HealthResponse)
