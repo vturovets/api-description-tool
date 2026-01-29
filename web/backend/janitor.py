@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from .services import storage
+from .services.jobs import job_registry
 
 __all__ = ["purge_expired"]
 
@@ -53,6 +54,7 @@ def purge_expired(ttl_min: int, *, now: Optional[datetime] = None) -> int:
             continue
 
         removed += 1
+        job_registry.delete_jobs_for_upload(entry.name)
         logger.info(
             "Deleted expired upload directory",
             extra={"event": "JANITOR_DELETE", "upload_id": entry.name, "path": str(entry)},
