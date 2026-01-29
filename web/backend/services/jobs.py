@@ -92,6 +92,17 @@ class JobRegistry:
             entry.output_filename = filename
             entry.updated_at = _utc_now()
 
+    def delete_jobs_for_upload(self, upload_id: str) -> int:
+        """Remove all jobs tied to the given upload ID."""
+
+        removed = 0
+        with self._lock:
+            job_ids = [job_id for job_id, job in self._jobs.items() if job.upload_id == upload_id]
+            for job_id in job_ids:
+                self._jobs.pop(job_id, None)
+                removed += 1
+        return removed
+
     def running_count(self) -> int:
         with self._lock:
             return sum(1 for job in self._jobs.values() if job.status == "running")
